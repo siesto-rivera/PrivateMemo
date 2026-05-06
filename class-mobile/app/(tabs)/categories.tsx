@@ -38,9 +38,9 @@ export default function CategoriesScreen() {
           selected ? (
             <Pressable
               onPress={() => setSelected(null)}
-              className="px-3 py-1.5 rounded-full bg-gray-100"
+              className="px-3 py-1.5 rounded-full bg-white/20 active:bg-white/30"
             >
-              <Text className="text-xs text-gray-600">← 전체</Text>
+              <Text className="text-xs text-white font-medium">← 전체</Text>
             </Pressable>
           ) : null
         }

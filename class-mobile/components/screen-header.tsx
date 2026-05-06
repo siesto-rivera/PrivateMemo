@@ -10,12 +10,12 @@ type Props = {
 
 export function ScreenHeader({ title, subtitle, right }: Props) {
   return (
-    <SafeAreaView edges={['top']} className="bg-white">
-      <View className="flex-row items-center justify-between px-5 pt-2 pb-4 border-b border-gray-100">
+    <SafeAreaView edges={['top']} className="bg-brand-500">
+      <View className="flex-row items-center justify-between px-5 pt-2 pb-4">
         <View>
-          <Text className="text-xl font-bold text-gray-900">{title}</Text>
+          <Text className="text-xl font-bold text-white">{title}</Text>
           {subtitle ? (
-            <Text className="text-xs text-gray-500 mt-0.5">{subtitle}</Text>
+            <Text className="text-xs text-white/70 mt-0.5">{subtitle}</Text>
           ) : null}
         </View>
         {right}

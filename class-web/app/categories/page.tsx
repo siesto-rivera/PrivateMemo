@@ -46,7 +46,7 @@ export default function CategoriesPage() {
         selected ? (
           <button
             onClick={() => setSelected(null)}
-            className="px-3 py-1.5 rounded-full bg-gray-100 text-xs text-gray-600 hover:bg-gray-200"
+            className="px-3 py-1.5 rounded-full bg-white/20 text-xs text-white font-medium hover:bg-white/30"
           >
             ← 전체
           </button>
