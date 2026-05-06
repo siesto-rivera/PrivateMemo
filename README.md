@@ -144,4 +144,14 @@ class-web/
 
 ## 라이선스
 
-개인 프로젝트.
+이 저장소의 코드와 문서는 **[크리에이티브 커먼즈 저작자표시-비영리 4.0 국제 (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/deed.ko)** 라이선스로 배포됩니다.
+
+[![CC BY-NC 4.0](https://licensebuttons.net/l/by-nc/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc/4.0/deed.ko)
+
+요약:
+- ✅ **공유** — 어떤 매체나 형식으로든 자유롭게 복제·배포 가능
+- ✅ **변경** — 자유롭게 리믹스, 변형 및 2차적 저작물 작성 가능
+- ⚠️ **저작자 표시 (BY)** — 적절한 출처와 라이선스 링크를 표기해야 함
+- 🚫 **비영리 (NC)** — 영리적 목적으로 이용할 수 없음
+
+전체 라이선스 본문은 [`LICENSE`](./LICENSE) 파일과 [공식 deed](https://creativecommons.org/licenses/by-nc/4.0/deed.ko)를 참고하세요.
