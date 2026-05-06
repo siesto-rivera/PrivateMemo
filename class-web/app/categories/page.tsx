@@ -1,37 +1,142 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { MemoCard } from '@/components/MemoCard';
 import {
-  DEFAULT_CATEGORIES,
-  MOCK_MEMOS,
-  CATEGORY_EMOJI,
-} from '@/lib/mock-data';
+  createCategory,
+  deleteCategory,
+  getCategories,
+  getMemos,
+  updateCategory,
+} from '@/lib/api';
+import { CATEGORY_EMOJI, type Category, type Memo } from '@/lib/types';
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [memos, setMemos] = useState<Memo[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const counts = MOCK_MEMOS.reduce<Record<string, number>>((acc, m) => {
+  const [editing, setEditing] = useState<Category | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmoji, setEditEmoji] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const refetch = useCallback(async () => {
+    try {
+      const [cats, ms] = await Promise.all([getCategories(), getMemos()]);
+      setCategories(cats);
+      setMemos(ms);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '불러오지 못했습니다');
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [cats, ms] = await Promise.all([getCategories(), getMemos()]);
+        if (!cancelled) {
+          setCategories(cats);
+          setMemos(ms);
+        }
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : '불러오지 못했습니다');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!editing) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !savingEdit) setEditing(null);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [editing, savingEdit]);
+
+  const counts = memos.reduce<Record<string, number>>((acc, m) => {
     acc[m.category_name] = (acc[m.category_name] ?? 0) + 1;
     return acc;
   }, {});
 
-  function addCategory() {
+  async function addCategory() {
     const name = draft.trim();
     if (!name) return;
-    if (categories.includes(name)) {
+    if (categories.some((c) => c.name === name)) {
       alert('이미 있는 카테고리입니다');
       return;
     }
-    setCategories([...categories, name]);
-    setDraft('');
+    try {
+      await createCategory({ name });
+      const cats = await getCategories();
+      setCategories(cats);
+      setDraft('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '카테고리 추가에 실패했습니다');
+    }
   }
 
-  const memos = selected
-    ? MOCK_MEMOS.filter((m) => m.category_name === selected)
+  async function removeCategory(c: Category) {
+    const cnt = counts[c.name] ?? 0;
+    const message =
+      cnt > 0
+        ? `"${c.name}" 카테고리에 메모가 ${cnt}개 있습니다.\n카테고리와 함께 모두 삭제됩니다. 계속하시겠습니까?`
+        : `"${c.name}" 카테고리를 삭제하시겠습니까?`;
+    if (!confirm(message)) return;
+    try {
+      await deleteCategory(c.id);
+      await refetch();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '카테고리 삭제에 실패했습니다');
+    }
+  }
+
+  function openEdit(c: Category) {
+    setEditing(c);
+    setEditName(c.name);
+    setEditEmoji(c.emoji ?? '');
+    setEditError(null);
+  }
+
+  function closeEdit() {
+    if (savingEdit) return;
+    setEditing(null);
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    const name = editName.trim();
+    if (!name) {
+      setEditError('이름을 입력해주세요');
+      return;
+    }
+    setEditError(null);
+    setSavingEdit(true);
+    try {
+      await updateCategory(editing.id, { name, emoji: editEmoji });
+      setEditing(null);
+      await refetch();
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : '저장에 실패했습니다');
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  const filteredMemos = selected
+    ? memos.filter((m) => m.category_name === selected)
     : [];
 
   return (
@@ -39,7 +144,7 @@ export default function CategoriesPage() {
       title={selected ?? '카테고리'}
       subtitle={
         selected
-          ? `${memos.length}개의 메모`
+          ? `${filteredMemos.length}개의 메모`
           : `${categories.length}개의 카테고리`
       }
       headerRight={
@@ -53,8 +158,10 @@ export default function CategoriesPage() {
         ) : null
       }
     >
-      {selected ? (
-        memos.length === 0 ? (
+      {loading ? (
+        <p className="text-sm text-gray-500 py-12 text-center">로딩 중…</p>
+      ) : selected ? (
+        filteredMemos.length === 0 ? (
           <div className="flex flex-col items-center py-16">
             <span className="text-3xl mb-2">📭</span>
             <p className="text-sm text-gray-400">
@@ -62,7 +169,7 @@ export default function CategoriesPage() {
             </p>
           </div>
         ) : (
-          memos.map((m) => <MemoCard key={m.id} memo={m} />)
+          filteredMemos.map((m) => <MemoCard key={m.id} memo={m} onChanged={refetch} />)
         )
       ) : (
         <>
@@ -85,27 +192,121 @@ export default function CategoriesPage() {
             </button>
           </div>
 
+          {error ? <p className="text-red-600 text-sm mb-3">{error}</p> : null}
+
           <div className="grid grid-cols-2 gap-2">
             {categories.map((c) => {
-              const emoji = CATEGORY_EMOJI[c] ?? '🏷️';
-              const cnt = counts[c] ?? 0;
+              const emoji = c.emoji || CATEGORY_EMOJI[c.name] || '🏷️';
+              const cnt = counts[c.name] ?? 0;
+              const protectedCat = c.name === '미분류';
               return (
-                <button
-                  key={c}
-                  onClick={() => setSelected(c)}
-                  className="bg-white rounded-2xl px-4 py-4 border border-gray-100 hover:bg-gray-50 text-left transition"
-                >
-                  <div className="text-2xl mb-1">{emoji}</div>
-                  <div className="text-sm font-semibold text-gray-900 truncate">
-                    {c}
-                  </div>
-                  <div className="text-[11px] text-gray-400 mt-0.5">{cnt}개</div>
-                </button>
+                <div key={c.id} className="relative">
+                  <button
+                    onClick={() => setSelected(c.name)}
+                    className="w-full bg-white rounded-2xl px-4 py-4 border border-gray-100 hover:bg-gray-50 text-left transition"
+                  >
+                    <div className="text-2xl mb-1">{emoji}</div>
+                    <div className="text-sm font-semibold text-gray-900 truncate pr-14">
+                      {c.name}
+                    </div>
+                    <div className="text-[11px] text-gray-400 mt-0.5">{cnt}개</div>
+                  </button>
+                  {protectedCat ? null : (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEdit(c);
+                        }}
+                        aria-label={`${c.name} 수정`}
+                        className="absolute top-2 right-10 w-6 h-6 rounded-full bg-gray-100 hover:bg-brand-100 hover:text-brand-700 text-gray-500 text-xs leading-none flex items-center justify-center"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeCategory(c);
+                        }}
+                        aria-label={`${c.name} 삭제`}
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-600 text-gray-500 text-base leading-none flex items-center justify-center"
+                      >
+                        ×
+                      </button>
+                    </>
+                  )}
+                </div>
               );
             })}
           </div>
         </>
       )}
+
+      {editing ? (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          onClick={closeEdit}
+        >
+          <div
+            className="bg-white rounded-2xl p-5 w-full max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">카테고리 수정</h2>
+              <button
+                type="button"
+                onClick={closeEdit}
+                aria-label="닫기"
+                className="ml-auto w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 text-base leading-none flex items-center justify-center"
+              >
+                ×
+              </button>
+            </div>
+
+            <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">이름</p>
+            <div className="bg-white rounded-2xl px-4 py-3 mb-4 border border-gray-100">
+              <input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="카테고리 이름"
+                className="w-full text-[15px] text-gray-900 outline-none bg-transparent placeholder:text-gray-400"
+              />
+            </div>
+
+            <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">이모지</p>
+            <div className="bg-white rounded-2xl px-4 py-3 mb-5 border border-gray-100 inline-flex">
+              <input
+                value={editEmoji}
+                onChange={(e) => setEditEmoji(e.target.value)}
+                placeholder="🏷️"
+                maxLength={4}
+                className="w-[4ch] text-[20px] text-gray-900 outline-none bg-transparent placeholder:text-gray-400 text-center"
+              />
+            </div>
+
+            {editError ? (
+              <p className="text-red-600 text-sm mb-3">{editError}</p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={saveEdit}
+              disabled={savingEdit}
+              className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white rounded-2xl py-3 font-semibold mb-2"
+            >
+              {savingEdit ? '저장 중…' : '저장'}
+            </button>
+            <button
+              type="button"
+              onClick={closeEdit}
+              disabled={savingEdit}
+              className="w-full bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 rounded-2xl py-3 font-semibold"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }

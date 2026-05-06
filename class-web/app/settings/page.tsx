@@ -1,4 +1,8 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { useAuth } from '@/lib/auth-context';
 
 type Row = {
   icon: string;
@@ -36,8 +40,16 @@ const sections: { title: string; rows: Row[] }[] = [
 ];
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const { user, logout } = useAuth();
+
+  function onLogout() {
+    logout();
+    router.push('/login');
+  }
+
   return (
-    <AppShell title="설정">
+    <AppShell title="설정" subtitle={user?.email}>
       {sections.map((s) => (
         <div key={s.title} className="mb-6">
           <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">
@@ -80,6 +92,19 @@ export default function SettingsPage() {
           </div>
         </div>
       ))}
+      <div className="mb-6">
+        <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">계정</p>
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center px-4 py-3.5 hover:bg-gray-50 text-left"
+          >
+            <span className="text-base mr-3">🚪</span>
+            <span className="flex-1 text-[15px] text-red-600">로그아웃</span>
+            <span className="text-gray-300">›</span>
+          </button>
+        </div>
+      </div>
       <p className="text-center text-[11px] text-gray-400 mt-2">
         지극히 사적인 메모장 · UI 데모
       </p>

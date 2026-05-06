@@ -1,15 +1,56 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, TextInput, Pressable, Alert, Switch } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { ScreenHeader } from '@/components/screen-header';
-import { DEFAULT_CATEGORIES, CATEGORY_EMOJI } from '@/lib/mock-data';
+import { DateTimePickerButton } from '@/components/datetime-picker-button';
+import { createMemo, getCategories } from '@/lib/api';
+import { CATEGORY_EMOJI, type Category } from '@/lib/types';
+
+function defaultAlarmDate(): Date {
+  const d = new Date();
+  d.setHours(d.getHours() + 1, 0, 0, 0);
+  return d;
+}
 
 export default function AddScreen() {
-  const [category, setCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [category, setCategory] = useState<string>('');
   const [memo, setMemo] = useState('');
   const [tagDraft, setTagDraft] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [hasAlarm, setHasAlarm] = useState(false);
-  const [alarmDate, setAlarmDate] = useState('');
+  const [alarmDate, setAlarmDate] = useState<Date>(defaultAlarmDate);
+  const [saving, setSaving] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      (async () => {
+        try {
+          const data = await getCategories();
+          if (!active) return;
+          const sorted = [...data].sort((a, b) => {
+            if (a.name === '미분류') return -1;
+            if (b.name === '미분류') return 1;
+            return a.name.localeCompare(b.name, 'ko');
+          });
+          setCategories(sorted);
+          setCategory((prev) => {
+            if (prev && sorted.some((c) => c.name === prev)) return prev;
+            return sorted[0]?.name ?? '';
+          });
+        } catch (e) {
+          if (active) Alert.alert('카테고리 로딩 실패', e instanceof Error ? e.message : '');
+        } finally {
+          if (active) setLoadingCats(false);
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   function addTag() {
     const t = tagDraft.trim().replace(/^#/, '');
@@ -18,16 +59,34 @@ export default function AddScreen() {
     setTagDraft('');
   }
 
-  function save() {
+  async function save() {
+    if (saving) return;
     if (!memo.trim()) {
       Alert.alert('메모 내용을 입력해주세요');
       return;
     }
-    Alert.alert('저장됨 (mock)', `${category}: ${memo.slice(0, 30)}…`);
-    setMemo('');
-    setTags([]);
-    setHasAlarm(false);
-    setAlarmDate('');
+    if (!category) {
+      Alert.alert('카테고리를 선택해주세요');
+      return;
+    }
+    setSaving(true);
+    try {
+      await createMemo({
+        category_name: category,
+        memo: memo.trim(),
+        alarm_date: hasAlarm ? alarmDate.toISOString() : null,
+        tag: tags,
+      });
+      Alert.alert('저장되었습니다');
+      setMemo('');
+      setTags([]);
+      setHasAlarm(false);
+      setAlarmDate(defaultAlarmDate());
+    } catch (e) {
+      Alert.alert('저장 실패', e instanceof Error ? e.message : '');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -35,30 +94,35 @@ export default function AddScreen() {
       <ScreenHeader title="새 메모" subtitle="기록하고 분류하세요" />
       <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 64 }}>
         <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">카테고리</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5">
-          {DEFAULT_CATEGORIES.map((c) => {
-            const active = c === category;
-            return (
-              <Pressable
-                key={c}
-                onPress={() => setCategory(c)}
-                className={`mr-2 px-3.5 py-2 rounded-full border ${
-                  active
-                    ? 'bg-brand-500 border-brand-500'
-                    : 'bg-white border-gray-200'
-                }`}
-              >
-                <Text
-                  className={`text-xs font-medium ${
-                    active ? 'text-white' : 'text-gray-700'
+        {loadingCats ? (
+          <Text className="text-sm text-gray-400 mb-5 ml-1">로딩 중…</Text>
+        ) : categories.length === 0 ? (
+          <Text className="text-sm text-gray-400 mb-5 ml-1">
+            카테고리가 없습니다. 먼저 카테고리를 추가하세요.
+          </Text>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5">
+            {categories.map((c) => {
+              const active = c.name === category;
+              const emoji = c.emoji || CATEGORY_EMOJI[c.name] || '🏷️';
+              return (
+                <Pressable
+                  key={String(c.id)}
+                  onPress={() => setCategory(c.name)}
+                  className={`mr-2 px-3.5 py-2 rounded-full border ${
+                    active ? 'bg-brand-500 border-brand-500' : 'bg-white border-gray-200'
                   }`}
                 >
-                  {CATEGORY_EMOJI[c] ?? '🏷️'} {c}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+                  <Text
+                    className={`text-xs font-medium ${active ? 'text-white' : 'text-gray-700'}`}
+                  >
+                    {emoji} {c.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
 
         <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">내용</Text>
         <View className="bg-white rounded-2xl px-4 py-3 mb-5 border border-gray-100">
@@ -121,21 +185,18 @@ export default function AddScreen() {
             />
           </View>
           {hasAlarm ? (
-            <TextInput
-              value={alarmDate}
-              onChangeText={setAlarmDate}
-              placeholder="YYYY-MM-DD HH:mm"
-              placeholderTextColor="#9ca3af"
-              className="mt-3 bg-gray-50 rounded-xl px-3 py-2 text-[14px] text-gray-900"
-            />
+            <DateTimePickerButton value={alarmDate} onChange={setAlarmDate} />
           ) : null}
         </View>
 
         <Pressable
           onPress={save}
-          className="bg-brand-500 rounded-2xl py-4 items-center active:bg-brand-600"
+          disabled={saving}
+          className="bg-brand-500 rounded-2xl py-4 items-center active:bg-brand-600 disabled:opacity-50"
         >
-          <Text className="text-white text-base font-semibold">메모 저장</Text>
+          <Text className="text-white text-base font-semibold">
+            {saving ? '저장 중…' : '메모 저장'}
+          </Text>
         </Pressable>
       </ScrollView>
     </View>
