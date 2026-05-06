@@ -187,6 +187,13 @@ export function mergeCategory(
   });
 }
 
+export function deleteAccount(password: string): Promise<void> {
+  return apiFetch<void>('/auth/me/', {
+    method: 'DELETE',
+    body: JSON.stringify({ password }),
+  });
+}
+
 export function getMemos(): Promise<Memo[]> {
   return apiFetch<Memo[]>('/memos/');
 }

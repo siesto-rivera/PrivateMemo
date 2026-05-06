@@ -1,8 +1,21 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Switch, Alert, Linking } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  Switch,
+  Alert,
+  Linking,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+} from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/screen-header';
 import { useAuth } from '@/lib/auth-context';
+import { deleteAccount } from '@/lib/api';
 import {
   getPermissionStatus,
   getScheduledCount,
@@ -55,6 +68,11 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [permission, setPermission] = useState<PermissionStatus>('undetermined');
   const [scheduledCount, setScheduledCount] = useState<number>(0);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const refreshDiagnostics = useCallback(async () => {
     const [s, n] = await Promise.all([getPermissionStatus(), getScheduledCount()]);
@@ -122,6 +140,31 @@ export default function SettingsScreen() {
         },
       },
     ]);
+  }
+
+  function openDelete() {
+    setDeletePassword('');
+    setDeleteError(null);
+    setDeleteOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (!deletePassword) {
+      setDeleteError('비밀번호를 입력해주세요');
+      return;
+    }
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      await deleteAccount(deletePassword);
+      setDeleteOpen(false);
+      await logout();
+      router.replace('/(auth)/login');
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : '삭제에 실패했습니다');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -215,10 +258,85 @@ export default function SettingsScreen() {
           </View>
         ))}
 
+        <View className="mb-6">
+          <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">위험 영역</Text>
+          <View className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <Pressable
+              onPress={openDelete}
+              className="flex-row items-center px-4 py-3.5 active:bg-red-50"
+            >
+              <Text className="text-base mr-3">🗑️</Text>
+              <Text className="flex-1 text-[15px] font-semibold text-red-500">계정 삭제</Text>
+              <Text className="text-gray-300">›</Text>
+            </Pressable>
+          </View>
+          <Text className="text-[11px] text-gray-400 mt-2 ml-1">
+            계정을 삭제하면 모든 메모와 카테고리가 영구 삭제되며 복구할 수 없습니다.
+          </Text>
+        </View>
+
         <Text className="text-center text-[11px] text-gray-400 mt-2">
           지극히 사적인 메모장 · UI 데모
         </Text>
       </ScrollView>
+
+      <Modal
+        visible={deleteOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !deleting && setDeleteOpen(false)}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1"
+        >
+          <View className="bg-black/50 flex-1 justify-center items-center px-5">
+            <View className="bg-white rounded-2xl p-5 w-full max-w-md">
+              <Text className="text-base font-semibold text-gray-900 mb-2">계정 삭제</Text>
+              <Text className="text-sm text-gray-700 mb-4 leading-6">
+                계정과 모든 메모/카테고리가{' '}
+                <Text className="text-red-600 font-semibold">영구 삭제</Text>되며 복구할 수
+                없습니다. 계속하려면 비밀번호를 입력하세요.
+              </Text>
+
+              <View className="bg-gray-50 rounded-2xl px-4 py-3 mb-3 border border-gray-100">
+                <TextInput
+                  value={deletePassword}
+                  onChangeText={setDeletePassword}
+                  onSubmitEditing={confirmDelete}
+                  placeholder="비밀번호"
+                  placeholderTextColor="#9ca3af"
+                  secureTextEntry
+                  autoFocus
+                  className="text-[15px] text-gray-900"
+                />
+              </View>
+
+              {deleteError ? (
+                <Text className="text-xs text-red-500 mb-3 ml-1">{deleteError}</Text>
+              ) : null}
+
+              <Pressable
+                onPress={confirmDelete}
+                disabled={deleting}
+                className="bg-red-600 rounded-2xl py-3.5 items-center active:bg-red-700 disabled:opacity-50 mb-2"
+              >
+                <Text className="text-white text-base font-semibold">
+                  {deleting ? '삭제 중…' : '계정 영구 삭제'}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setDeleteOpen(false)}
+                disabled={deleting}
+                className="rounded-2xl py-3 items-center active:bg-gray-100 disabled:opacity-50"
+              >
+                <Text className="text-gray-600 text-base font-medium">취소</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }

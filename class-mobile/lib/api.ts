@@ -163,6 +163,13 @@ export async function me(): Promise<User> {
   return await apiFetch<User>('/auth/me/');
 }
 
+export async function deleteAccount(password: string): Promise<void> {
+  await apiFetch<null>('/auth/me/', {
+    method: 'DELETE',
+    body: JSON.stringify({ password }),
+  });
+}
+
 export async function getCategories(): Promise<Category[]> {
   return await apiFetch<Category[]>('/categories/');
 }
