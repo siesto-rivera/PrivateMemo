@@ -177,6 +177,16 @@ export function updateCategory(
   });
 }
 
+export function mergeCategory(
+  sourceId: number,
+  targetId: number,
+): Promise<{ moved: number; target: Category; detail: string }> {
+  return apiFetch(`/categories/${sourceId}/merge/`, {
+    method: 'POST',
+    body: JSON.stringify({ target_id: targetId }),
+  });
+}
+
 export function getMemos(): Promise<Memo[]> {
   return apiFetch<Memo[]>('/memos/');
 }

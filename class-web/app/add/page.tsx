@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
-import { createMemo, getCategories } from '@/lib/api';
+import { createCategory, createMemo, getCategories } from '@/lib/api';
 import { CATEGORY_EMOJI, type Category } from '@/lib/types';
 
 export default function AddPage() {
@@ -16,6 +16,12 @@ export default function AddPage() {
   const [loadingCats, setLoadingCats] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [newOpen, setNewOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newEmoji, setNewEmoji] = useState('');
+  const [newError, setNewError] = useState<string | null>(null);
+  const [creatingCat, setCreatingCat] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +53,42 @@ export default function AddPage() {
     if (!t || tags.includes(t)) return;
     setTags([...tags, t]);
     setTagDraft('');
+  }
+
+  function openNewCategory() {
+    setNewName('');
+    setNewEmoji('');
+    setNewError(null);
+    setNewOpen(true);
+  }
+
+  async function submitNewCategory() {
+    const name = newName.trim();
+    if (!name) {
+      setNewError('이름을 입력해주세요');
+      return;
+    }
+    if (categories.some((c) => c.name === name)) {
+      setNewError('이미 있는 카테고리입니다');
+      return;
+    }
+    setCreatingCat(true);
+    setNewError(null);
+    try {
+      const created = await createCategory({ name, emoji: newEmoji.trim() || undefined });
+      const next = [...categories, created].sort((a, b) => {
+        if (a.name === '미분류') return -1;
+        if (b.name === '미분류') return 1;
+        return a.name.localeCompare(b.name, 'ko');
+      });
+      setCategories(next);
+      setCategory(created.name);
+      setNewOpen(false);
+    } catch (err) {
+      setNewError(err instanceof Error ? err.message : '추가 실패');
+    } finally {
+      setCreatingCat(false);
+    }
   }
 
   async function save() {
@@ -103,6 +145,12 @@ export default function AddPage() {
               </button>
             );
           })}
+          <button
+            onClick={openNewCategory}
+            className="shrink-0 px-3.5 py-2 rounded-full border border-dashed border-brand-400 text-xs font-medium text-brand-600 bg-white hover:bg-brand-50"
+          >
+            + 새 카테고리
+          </button>
         </div>
       )}
 
@@ -181,6 +229,62 @@ export default function AddPage() {
       >
         {submitting ? '저장 중…' : '메모 저장'}
       </button>
+
+      {newOpen ? (
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          onClick={() => !creatingCat && setNewOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl p-5 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">새 카테고리</h2>
+
+            <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">이름</p>
+            <div className="bg-white rounded-2xl px-4 py-3 mb-3 border border-gray-100">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submitNewCategory()}
+                placeholder="카테고리 이름"
+                autoFocus
+                className="w-full text-[15px] text-gray-900 outline-none bg-transparent placeholder:text-gray-400"
+              />
+            </div>
+
+            <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">이모지 (선택)</p>
+            <div className="bg-white rounded-2xl px-4 py-3 mb-4 border border-gray-100 inline-flex">
+              <input
+                value={newEmoji}
+                onChange={(e) => setNewEmoji(e.target.value)}
+                placeholder="🏷️"
+                maxLength={4}
+                className="w-[4ch] text-[20px] text-gray-900 outline-none bg-transparent placeholder:text-gray-400 text-center"
+              />
+            </div>
+
+            {newError ? <p className="text-red-600 text-sm mb-3">{newError}</p> : null}
+
+            <button
+              type="button"
+              onClick={submitNewCategory}
+              disabled={creatingCat}
+              className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white rounded-2xl py-3 font-semibold mb-2"
+            >
+              {creatingCat ? '추가 중…' : '추가'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewOpen(false)}
+              disabled={creatingCat}
+              className="w-full bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 rounded-2xl py-3 font-semibold"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }

@@ -19,6 +19,7 @@ import {
   deleteCategory,
   getCategories,
   getMemos,
+  mergeCategory,
   updateCategory,
 } from '@/lib/api';
 import { syncAlarms } from '@/lib/notifications';
@@ -94,7 +95,7 @@ export default function CategoriesScreen() {
     const cnt = counts[c.name] ?? 0;
     const message =
       cnt > 0
-        ? `"${c.name}" 카테고리에 메모가 ${cnt}개 있습니다.\n카테고리와 함께 모두 삭제됩니다.`
+        ? `"${c.name}" 카테고리를 삭제하시겠습니까?\n메모 ${cnt}개는 '미분류'로 이동됩니다.`
         : `"${c.name}" 카테고리를 삭제하시겠습니까?`;
     Alert.alert('카테고리 삭제', message, [
       { text: '취소', style: 'cancel' },
@@ -235,6 +236,8 @@ export default function CategoriesScreen() {
       {editing ? (
         <CategoryEditModal
           category={editing}
+          categories={categories}
+          memoCount={counts[editing.name] ?? 0}
           onClose={() => setEditing(null)}
           onSaved={async () => {
             setEditing(null);
@@ -248,20 +251,27 @@ export default function CategoriesScreen() {
 
 function CategoryEditModal({
   category,
+  categories,
+  memoCount,
   onClose,
   onSaved,
 }: {
   category: Category;
+  categories: Category[];
+  memoCount: number;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [name, setName] = useState(category.name);
   const [emoji, setEmoji] = useState(category.emoji || CATEGORY_EMOJI[category.name] || '');
   const [saving, setSaving] = useState(false);
+  const [merging, setMerging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const mergeTargets = categories.filter((c) => c.id !== category.id);
+
   async function save() {
-    if (saving) return;
+    if (saving || merging) return;
     const n = name.trim();
     if (!n) {
       setError('이름을 입력해주세요');
@@ -276,6 +286,38 @@ function CategoryEditModal({
       setError(e instanceof Error ? e.message : '저장 실패');
     } finally {
       setSaving(false);
+    }
+  }
+
+  function pickMerge() {
+    if (saving || merging) return;
+    if (mergeTargets.length === 0) {
+      Alert.alert('통합할 대상이 없습니다');
+      return;
+    }
+    Alert.alert(
+      '통합할 카테고리 선택',
+      `"${category.name}"의 메모 ${memoCount}개를 어디로 옮길까요?\n옮긴 뒤 "${category.name}"는 삭제됩니다.`,
+      [
+        { text: '취소', style: 'cancel' },
+        ...mergeTargets.map((t) => ({
+          text: `${t.emoji || '🏷️'} ${t.name}`,
+          onPress: () => doMerge(t),
+        })),
+      ],
+    );
+  }
+
+  async function doMerge(target: Category) {
+    setError(null);
+    setMerging(true);
+    try {
+      await mergeCategory(category.id, target.id);
+      onSaved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '통합 실패');
+    } finally {
+      setMerging(false);
     }
   }
 
@@ -323,17 +365,37 @@ function CategoryEditModal({
 
             <Pressable
               onPress={save}
-              disabled={saving}
+              disabled={saving || merging}
               className="bg-brand-500 rounded-2xl py-3.5 items-center active:bg-brand-600 disabled:opacity-50 mb-2"
             >
               <Text className="text-white text-base font-semibold">
                 {saving ? '저장 중…' : '저장'}
               </Text>
             </Pressable>
+
+            <View className="flex-row items-center my-3">
+              <View className="flex-1 h-px bg-gray-200" />
+              <Text className="px-3 text-[11px] text-gray-400">또는</Text>
+              <View className="flex-1 h-px bg-gray-200" />
+            </View>
+
+            <Text className="text-[11px] text-gray-400 mb-2 ml-1">
+              메모를 다른 카테고리로 옮기고 이 카테고리를 삭제합니다.
+            </Text>
+            <Pressable
+              onPress={pickMerge}
+              disabled={saving || merging}
+              className="bg-amber-500 rounded-2xl py-3.5 items-center active:bg-amber-600 disabled:opacity-50 mb-2"
+            >
+              <Text className="text-white text-base font-semibold">
+                {merging ? '통합 중…' : '다른 카테고리로 통합'}
+              </Text>
+            </Pressable>
+
             <Pressable
               onPress={onClose}
-              disabled={saving}
-              className="rounded-2xl py-3 items-center active:bg-gray-100 disabled:opacity-50"
+              disabled={saving || merging}
+              className="rounded-2xl py-3 items-center active:bg-gray-100 disabled:opacity-50 mt-2"
             >
               <Text className="text-gray-600 text-base font-medium">취소</Text>
             </Pressable>

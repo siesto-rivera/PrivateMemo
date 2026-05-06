@@ -8,6 +8,7 @@ import {
   deleteCategory,
   getCategories,
   getMemos,
+  mergeCategory,
   updateCategory,
 } from '@/lib/api';
 import { CATEGORY_EMOJI, type Category, type Memo } from '@/lib/types';
@@ -25,6 +26,8 @@ export default function CategoriesPage() {
   const [editEmoji, setEditEmoji] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [mergeTargetId, setMergeTargetId] = useState<string>('');
+  const [merging, setMerging] = useState(false);
 
   const refetch = useCallback(async () => {
     try {
@@ -92,7 +95,7 @@ export default function CategoriesPage() {
     const cnt = counts[c.name] ?? 0;
     const message =
       cnt > 0
-        ? `"${c.name}" 카테고리에 메모가 ${cnt}개 있습니다.\n카테고리와 함께 모두 삭제됩니다. 계속하시겠습니까?`
+        ? `"${c.name}" 카테고리를 삭제하시겠습니까?\n메모 ${cnt}개는 '미분류'로 이동됩니다.`
         : `"${c.name}" 카테고리를 삭제하시겠습니까?`;
     if (!confirm(message)) return;
     try {
@@ -108,11 +111,34 @@ export default function CategoriesPage() {
     setEditName(c.name);
     setEditEmoji(c.emoji ?? '');
     setEditError(null);
+    setMergeTargetId('');
   }
 
   function closeEdit() {
-    if (savingEdit) return;
+    if (savingEdit || merging) return;
     setEditing(null);
+  }
+
+  async function runMerge() {
+    if (!editing || !mergeTargetId) return;
+    const target = categories.find((c) => String(c.id) === mergeTargetId);
+    if (!target) return;
+    const cnt = counts[editing.name] ?? 0;
+    const ok = confirm(
+      `"${editing.name}"의 메모 ${cnt}개를 "${target.name}"(으)로 이동하고\n"${editing.name}" 카테고리는 삭제됩니다. 계속하시겠습니까?`,
+    );
+    if (!ok) return;
+    setEditError(null);
+    setMerging(true);
+    try {
+      await mergeCategory(editing.id, target.id);
+      setEditing(null);
+      await refetch();
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : '통합에 실패했습니다');
+    } finally {
+      setMerging(false);
+    }
   }
 
   async function saveEdit() {
@@ -291,15 +317,50 @@ export default function CategoriesPage() {
             <button
               type="button"
               onClick={saveEdit}
-              disabled={savingEdit}
+              disabled={savingEdit || merging}
               className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white rounded-2xl py-3 font-semibold mb-2"
             >
               {savingEdit ? '저장 중…' : '저장'}
             </button>
+
+            <div className="my-5 flex items-center">
+              <div className="flex-1 h-px bg-gray-200" />
+              <span className="px-3 text-[11px] text-gray-400">또는</span>
+              <div className="flex-1 h-px bg-gray-200" />
+            </div>
+
+            <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">다른 카테고리로 통합</p>
+            <p className="text-[11px] text-gray-400 mb-2 ml-1">
+              이 카테고리의 메모를 선택한 카테고리로 이동하고 이 카테고리는 삭제됩니다.
+            </p>
+            <select
+              value={mergeTargetId}
+              onChange={(e) => setMergeTargetId(e.target.value)}
+              disabled={merging}
+              className="w-full bg-white rounded-2xl px-4 py-3 mb-2 border border-gray-100 text-[15px] text-gray-900 outline-none"
+            >
+              <option value="">대상 카테고리 선택…</option>
+              {categories
+                .filter((c) => editing && c.id !== editing.id)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.emoji || '🏷️'} {c.name}
+                  </option>
+                ))}
+            </select>
+            <button
+              type="button"
+              onClick={runMerge}
+              disabled={!mergeTargetId || merging || savingEdit}
+              className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-2xl py-3 font-semibold mb-4"
+            >
+              {merging ? '통합 중…' : '통합'}
+            </button>
+
             <button
               type="button"
               onClick={closeEdit}
-              disabled={savingEdit}
+              disabled={savingEdit || merging}
               className="w-full bg-gray-100 hover:bg-gray-200 disabled:opacity-60 text-gray-700 rounded-2xl py-3 font-semibold"
             >
               취소

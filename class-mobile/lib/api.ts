@@ -188,6 +188,16 @@ export async function updateCategory(
   });
 }
 
+export async function mergeCategory(
+  sourceId: number,
+  targetId: number,
+): Promise<{ moved: number; target: Category; detail: string }> {
+  return await apiFetch(`/categories/${sourceId}/merge/`, {
+    method: 'POST',
+    body: JSON.stringify({ target_id: targetId }),
+  });
+}
+
 export async function getMemos(): Promise<Memo[]> {
   return await apiFetch<Memo[]>('/memos/');
 }

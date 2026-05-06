@@ -1,9 +1,20 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, TextInput, Pressable, Alert, Switch } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TextInput,
+  Pressable,
+  Alert,
+  Switch,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { ScreenHeader } from '@/components/screen-header';
 import { DateTimePickerButton } from '@/components/datetime-picker-button';
-import { createMemo, getCategories } from '@/lib/api';
+import { createCategory, createMemo, getCategories } from '@/lib/api';
 import { CATEGORY_EMOJI, type Category } from '@/lib/types';
 
 function defaultAlarmDate(): Date {
@@ -22,6 +33,12 @@ export default function AddScreen() {
   const [hasAlarm, setHasAlarm] = useState(false);
   const [alarmDate, setAlarmDate] = useState<Date>(defaultAlarmDate);
   const [saving, setSaving] = useState(false);
+
+  const [newOpen, setNewOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newEmoji, setNewEmoji] = useState('');
+  const [newError, setNewError] = useState<string | null>(null);
+  const [creatingCat, setCreatingCat] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -57,6 +74,43 @@ export default function AddScreen() {
     if (!t || tags.includes(t)) return;
     setTags([...tags, t]);
     setTagDraft('');
+  }
+
+  function openNewCategory() {
+    setNewName('');
+    setNewEmoji('');
+    setNewError(null);
+    setNewOpen(true);
+  }
+
+  async function submitNewCategory() {
+    if (creatingCat) return;
+    const name = newName.trim();
+    if (!name) {
+      setNewError('이름을 입력해주세요');
+      return;
+    }
+    if (categories.some((c) => c.name === name)) {
+      setNewError('이미 있는 카테고리입니다');
+      return;
+    }
+    setNewError(null);
+    setCreatingCat(true);
+    try {
+      const created = await createCategory({ name, emoji: newEmoji.trim() || undefined });
+      const next = [...categories, created].sort((a, b) => {
+        if (a.name === '미분류') return -1;
+        if (b.name === '미분류') return 1;
+        return a.name.localeCompare(b.name, 'ko');
+      });
+      setCategories(next);
+      setCategory(created.name);
+      setNewOpen(false);
+    } catch (e) {
+      setNewError(e instanceof Error ? e.message : '추가 실패');
+    } finally {
+      setCreatingCat(false);
+    }
   }
 
   async function save() {
@@ -121,6 +175,12 @@ export default function AddScreen() {
                 </Pressable>
               );
             })}
+            <Pressable
+              onPress={openNewCategory}
+              className="mr-2 px-3.5 py-2 rounded-full border border-dashed border-brand-400 bg-white active:bg-brand-50"
+            >
+              <Text className="text-xs font-medium text-brand-600">+ 새 카테고리</Text>
+            </Pressable>
           </ScrollView>
         )}
 
@@ -199,6 +259,70 @@ export default function AddScreen() {
           </Text>
         </Pressable>
       </ScrollView>
+
+      <Modal
+        visible={newOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !creatingCat && setNewOpen(false)}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1"
+        >
+          <View className="bg-black/40 flex-1 justify-center items-center px-5">
+            <View className="bg-white rounded-2xl p-5 w-full max-w-md">
+              <Text className="text-base font-semibold text-gray-900 mb-3">새 카테고리</Text>
+
+              <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">이름</Text>
+              <View className="bg-gray-50 rounded-2xl px-4 py-3 mb-3 border border-gray-100">
+                <TextInput
+                  value={newName}
+                  onChangeText={setNewName}
+                  onSubmitEditing={submitNewCategory}
+                  placeholder="카테고리 이름"
+                  placeholderTextColor="#9ca3af"
+                  autoFocus
+                  className="text-[15px] text-gray-900"
+                />
+              </View>
+
+              <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">이모지 (선택)</Text>
+              <View className="bg-gray-50 rounded-2xl px-4 py-3 mb-3 border border-gray-100 w-16">
+                <TextInput
+                  value={newEmoji}
+                  onChangeText={setNewEmoji}
+                  placeholder="🏷️"
+                  placeholderTextColor="#9ca3af"
+                  className="text-[18px] text-gray-900"
+                />
+              </View>
+
+              {newError ? (
+                <Text className="text-xs text-red-500 mb-3 ml-1">{newError}</Text>
+              ) : null}
+
+              <Pressable
+                onPress={submitNewCategory}
+                disabled={creatingCat}
+                className="bg-brand-500 rounded-2xl py-3.5 items-center active:bg-brand-600 disabled:opacity-50 mb-2"
+              >
+                <Text className="text-white text-base font-semibold">
+                  {creatingCat ? '추가 중…' : '추가'}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setNewOpen(false)}
+                disabled={creatingCat}
+                className="rounded-2xl py-3 items-center active:bg-gray-100 disabled:opacity-50"
+              >
+                <Text className="text-gray-600 text-base font-medium">취소</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }

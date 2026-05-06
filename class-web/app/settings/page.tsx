@@ -49,7 +49,22 @@ export default function SettingsPage() {
   }
 
   return (
-    <AppShell title="설정" subtitle={user?.email}>
+    <AppShell title="설정">
+      {user ? (
+        <div className="bg-white rounded-2xl px-4 py-4 mb-6 border border-gray-100 flex items-center">
+          <div className="flex-1 min-w-0 pr-3">
+            <p className="text-xs font-semibold text-gray-500 mb-1">계정</p>
+            <p className="text-base font-semibold text-gray-900 truncate">{user.name}</p>
+            <p className="text-sm text-gray-500 mt-0.5 truncate">{user.email}</p>
+          </div>
+          <button
+            onClick={onLogout}
+            className="px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-600 shrink-0"
+          >
+            로그아웃
+          </button>
+        </div>
+      ) : null}
       {sections.map((s) => (
         <div key={s.title} className="mb-6">
           <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">
@@ -92,19 +107,6 @@ export default function SettingsPage() {
           </div>
         </div>
       ))}
-      <div className="mb-6">
-        <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">계정</p>
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center px-4 py-3.5 hover:bg-gray-50 text-left"
-          >
-            <span className="text-base mr-3">🚪</span>
-            <span className="flex-1 text-[15px] text-red-600">로그아웃</span>
-            <span className="text-gray-300">›</span>
-          </button>
-        </div>
-      </div>
       <p className="text-center text-[11px] text-gray-400 mt-2">
         지극히 사적인 메모장 · UI 데모
       </p>
