@@ -21,6 +21,7 @@ import {
   getMemos,
   updateCategory,
 } from '@/lib/api';
+import { syncAlarms } from '@/lib/notifications';
 import { CATEGORY_EMOJI, type Category, type Memo } from '@/lib/types';
 
 export default function CategoriesScreen() {
@@ -40,6 +41,7 @@ export default function CategoriesScreen() {
       const [c, m] = await Promise.all([getCategories(), getMemos()]);
       setCategories(c);
       setMemos(m);
+      syncAlarms(m);
     } catch (e) {
       setError(e instanceof Error ? e.message : '데이터를 불러오지 못했습니다');
     }

@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { ScreenHeader } from '@/components/screen-header';
 import { MemoCard } from '@/components/memo-card';
 import { getMemos } from '@/lib/api';
+import { syncAlarms } from '@/lib/notifications';
 import type { Memo } from '@/lib/types';
 
 export default function HomeScreen() {
@@ -18,6 +19,7 @@ export default function HomeScreen() {
     try {
       const data = await getMemos();
       setMemos(data);
+      syncAlarms(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : '메모를 불러오지 못했습니다');
     }

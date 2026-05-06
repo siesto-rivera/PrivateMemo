@@ -192,6 +192,10 @@ export async function getMemos(): Promise<Memo[]> {
   return await apiFetch<Memo[]>('/memos/');
 }
 
+export async function getMemo(id: number): Promise<Memo> {
+  return await apiFetch<Memo>(`/memos/${id}/`);
+}
+
 export type CreateMemoPayload = {
   category_name: string;
   memo: string;
