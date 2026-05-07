@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { ensurePermission, setupNotificationHandler } from '@/lib/notifications';
+import { SelectedCategoryProvider } from '@/lib/selected-category-context';
 import '../global.css';
 
 setupNotificationHandler();
@@ -82,6 +83,7 @@ function AuthGate() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="memo/[id]" options={{ headerShown: true }} />
+        <Stack.Screen name="trash" options={{ headerShown: true }} />
       </Stack>
       <Modal visible={alarm !== null} transparent animationType="fade" onRequestClose={dismissAlarm}>
         <View className="flex-1 bg-black/50 justify-center items-center px-5">
@@ -117,8 +119,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <AuthGate />
-        <StatusBar style="light" />
+        <SelectedCategoryProvider>
+          <AuthGate />
+          <StatusBar style="light" />
+        </SelectedCategoryProvider>
       </AuthProvider>
     </ThemeProvider>
   );

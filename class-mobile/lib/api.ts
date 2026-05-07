@@ -1,5 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
-import type { Category, Memo, User } from './types';
+import type { Category, Memo, Repeat, User } from './types';
 
 const ACCESS_KEY = 'pm_access';
 const REFRESH_KEY = 'pm_refresh';
@@ -217,6 +217,7 @@ export type CreateMemoPayload = {
   category_name: string;
   memo: string;
   alarm_date?: string | null;
+  repeat?: Repeat;
   tag?: string[];
 };
 
@@ -236,4 +237,34 @@ export async function updateMemo(id: number, partial: Partial<CreateMemoPayload>
 
 export async function deleteMemo(id: number): Promise<void> {
   await apiFetch<null>(`/memos/${id}/`, { method: 'DELETE' });
+}
+
+export async function getTrash(): Promise<Memo[]> {
+  return await apiFetch<Memo[]>('/memos/trash/');
+}
+
+export async function restoreMemo(id: number): Promise<Memo> {
+  return await apiFetch<Memo>(`/memos/${id}/restore/`, { method: 'POST' });
+}
+
+export async function forceDeleteMemo(id: number): Promise<void> {
+  await apiFetch<null>(`/memos/${id}/?force=1`, { method: 'DELETE' });
+}
+
+export async function emptyTrash(): Promise<{ deleted: number }> {
+  return await apiFetch('/memos/empty_trash/', { method: 'POST' });
+}
+
+export async function bulkImportMemos(
+  memos: Array<{
+    category_name: string;
+    memo: string;
+    alarm_date?: string | null;
+    tag?: string[];
+  }>,
+): Promise<{ imported: number; errors: Array<{ row: number; message: string }> }> {
+  return await apiFetch('/memos/bulk_import/', {
+    method: 'POST',
+    body: JSON.stringify({ memos, auto_create_categories: true }),
+  });
 }

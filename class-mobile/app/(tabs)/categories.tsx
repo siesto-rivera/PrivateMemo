@@ -23,12 +23,19 @@ import {
   updateCategory,
 } from '@/lib/api';
 import { syncAlarms } from '@/lib/notifications';
+import { useSelectedCategory } from '@/lib/selected-category-context';
 import { CATEGORY_EMOJI, type Category, type Memo } from '@/lib/types';
 
 export default function CategoriesScreen() {
+  const { setSelectedCategory } = useSelectedCategory();
   const [categories, setCategories] = useState<Category[]>([]);
   const [memos, setMemos] = useState<Memo[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+
+  function selectCategory(name: string | null) {
+    setSelected(name);
+    setSelectedCategory(name);
+  }
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +135,7 @@ export default function CategoriesScreen() {
         right={
           selected ? (
             <Pressable
-              onPress={() => setSelected(null)}
+              onPress={() => selectCategory(null)}
               className="px-3 py-1.5 rounded-full bg-white/20 active:bg-white/30"
             >
               <Text className="text-xs text-white font-medium">← 전체</Text>
@@ -191,7 +198,7 @@ export default function CategoriesScreen() {
                   <View key={String(c.id)} className="w-1/2 px-1 mb-2">
                     <View className="relative">
                       <Pressable
-                        onPress={() => setSelected(c.name)}
+                        onPress={() => selectCategory(c.name)}
                         className="bg-white rounded-2xl px-4 py-4 border border-gray-100 active:bg-gray-50"
                       >
                         <Text className="text-2xl mb-1">{emoji}</Text>

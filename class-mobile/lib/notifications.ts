@@ -46,6 +46,52 @@ export async function ensurePermission(): Promise<boolean> {
 }
 
 
+function buildTrigger(
+  memo: Memo,
+  date: Date,
+): Notifications.NotificationTriggerInput | null {
+  const repeat = memo.repeat ?? 'none';
+  if (repeat === 'none') {
+    if (date.getTime() <= Date.now()) return null; // skip past one-shots
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date,
+    };
+  }
+  // Calendar trigger — recurring. iOS/Android schedule next occurrence
+  // from now onwards based on (hour, minute, [weekday], [day]).
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  if (repeat === 'daily') {
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+      hour,
+      minute,
+      repeats: true,
+    };
+  }
+  if (repeat === 'weekly') {
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+      weekday: date.getDay() + 1, // expo: 1=Sunday..7=Saturday
+      hour,
+      minute,
+      repeats: true,
+    };
+  }
+  if (repeat === 'monthly') {
+    return {
+      type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+      day: date.getDate(),
+      hour,
+      minute,
+      repeats: true,
+    };
+  }
+  return null;
+}
+
+
 export async function syncAlarms(memos: Memo[]): Promise<void> {
   const granted = await ensurePermission();
   if (!granted) {
@@ -55,13 +101,14 @@ export async function syncAlarms(memos: Memo[]): Promise<void> {
 
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  const now = Date.now();
   let scheduled = 0;
   for (const memo of memos) {
     if (!memo.alarm_date) continue;
     const date = new Date(memo.alarm_date);
-    const ms = date.getTime();
-    if (Number.isNaN(ms) || ms <= now) continue;
+    if (Number.isNaN(date.getTime())) continue;
+
+    const trigger = buildTrigger(memo, date);
+    if (!trigger) continue;
 
     await Notifications.scheduleNotificationAsync({
       identifier: `memo-${memo.id}`,
@@ -70,10 +117,7 @@ export async function syncAlarms(memos: Memo[]): Promise<void> {
         body: memo.memo.slice(0, 100),
         data: { memoId: memo.id },
       },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date,
-      },
+      trigger,
     });
     scheduled++;
   }
@@ -84,22 +128,4 @@ export async function syncAlarms(memos: Memo[]): Promise<void> {
 export async function getScheduledCount(): Promise<number> {
   const list = await Notifications.getAllScheduledNotificationsAsync();
   return list.length;
-}
-
-
-export async function scheduleTestIn(seconds: number): Promise<string> {
-  const ok = await ensurePermission();
-  if (!ok) throw new Error('알림 권한이 없습니다');
-  const id = await Notifications.scheduleNotificationAsync({
-    content: {
-      title: '🔔 테스트 알림',
-      body: `${seconds}초 뒤 알림 — 정상 작동 확인`,
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds,
-    },
-  });
-  console.log(`[notifications] scheduleTestIn: scheduled in ${seconds}s, id=${id}`);
-  return id;
 }

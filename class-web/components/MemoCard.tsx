@@ -1,8 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { deleteMemo, getCategories, updateMemo } from '@/lib/api';
-import { CATEGORY_EMOJI, formatDate, type Category, type Memo } from '@/lib/types';
+import {
+  CATEGORY_EMOJI,
+  REPEAT_LABELS,
+  formatDate,
+  type Category,
+  type Memo,
+  type Repeat,
+} from '@/lib/types';
+
+const REPEAT_OPTIONS: Repeat[] = ['none', 'daily', 'weekly', 'monthly'];
 
 type Props = { memo: Memo; onChanged?: () => void };
 
@@ -26,6 +36,7 @@ export function MemoCard({ memo, onChanged }: Props) {
   const [tagDraft, setTagDraft] = useState('');
   const [hasAlarm, setHasAlarm] = useState<boolean>(!!memo.alarm_date);
   const [alarmDate, setAlarmDate] = useState<string>(toDatetimeLocal(memo.alarm_date));
+  const [repeat, setRepeat] = useState<Repeat>(memo.repeat ?? 'none');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +48,7 @@ export function MemoCard({ memo, onChanged }: Props) {
     setTagDraft('');
     setHasAlarm(!!memo.alarm_date);
     setAlarmDate(toDatetimeLocal(memo.alarm_date));
+    setRepeat(memo.repeat ?? 'none');
     setError(null);
     setIsOpen(true);
   }
@@ -107,6 +119,7 @@ export function MemoCard({ memo, onChanged }: Props) {
         category_name: category,
         memo: memoText,
         alarm_date: hasAlarm ? alarmDate || null : null,
+        repeat: hasAlarm ? repeat : 'none',
         tag: tags,
       });
       setIsOpen(false);
@@ -146,10 +159,13 @@ export function MemoCard({ memo, onChanged }: Props) {
           {memo.alarm_date ? (
             <span className="ml-auto bg-amber-50 text-amber-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
               🔔 {formatDate(memo.alarm_date)}
+              {memo.repeat && memo.repeat !== 'none' ? ` 🔁 ${REPEAT_LABELS[memo.repeat]}` : ''}
             </span>
           ) : null}
         </div>
-        <p className="text-[15px] text-gray-900 leading-5 line-clamp-2">{memo.memo}</p>
+        <div className="text-[15px] text-gray-900 leading-5 line-clamp-2 prose prose-sm max-w-none [&>*]:m-0 [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0">
+          <ReactMarkdown>{memo.memo}</ReactMarkdown>
+        </div>
         <div className="flex flex-wrap items-center mt-2 gap-1.5">
           {memo.tag.map((t) => (
             <span
@@ -276,12 +292,30 @@ export function MemoCard({ memo, onChanged }: Props) {
                 />
               </label>
               {hasAlarm ? (
-                <input
-                  type="datetime-local"
-                  value={alarmDate}
-                  onChange={(e) => setAlarmDate(e.target.value)}
-                  className="mt-3 w-full bg-gray-50 rounded-xl px-3 py-2 text-[14px] text-gray-900 outline-none"
-                />
+                <>
+                  <input
+                    type="datetime-local"
+                    value={alarmDate}
+                    onChange={(e) => setAlarmDate(e.target.value)}
+                    className="mt-3 w-full bg-gray-50 rounded-xl px-3 py-2 text-[14px] text-gray-900 outline-none"
+                  />
+                  <div className="flex gap-1 mt-3">
+                    {REPEAT_OPTIONS.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRepeat(r)}
+                        className={`flex-1 px-3 py-2 rounded-full border text-xs font-medium ${
+                          r === repeat
+                            ? 'bg-brand-500 border-brand-500 text-white'
+                            : 'bg-white border-gray-200 text-gray-700'
+                        }`}
+                      >
+                        {REPEAT_LABELS[r]}
+                      </button>
+                    ))}
+                  </div>
+                </>
               ) : null}
             </div>
 

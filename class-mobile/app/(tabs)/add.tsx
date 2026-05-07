@@ -11,11 +11,14 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/screen-header';
 import { DateTimePickerButton } from '@/components/datetime-picker-button';
 import { createCategory, createMemo, getCategories } from '@/lib/api';
-import { CATEGORY_EMOJI, type Category } from '@/lib/types';
+import { useSelectedCategory } from '@/lib/selected-category-context';
+import { CATEGORY_EMOJI, REPEAT_LABELS, type Category, type Repeat } from '@/lib/types';
+
+const REPEAT_OPTIONS: Repeat[] = ['none', 'daily', 'weekly', 'monthly'];
 
 function defaultAlarmDate(): Date {
   const d = new Date();
@@ -24,6 +27,8 @@ function defaultAlarmDate(): Date {
 }
 
 export default function AddScreen() {
+  const router = useRouter();
+  const { selectedCategory } = useSelectedCategory();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
   const [category, setCategory] = useState<string>('');
@@ -32,6 +37,7 @@ export default function AddScreen() {
   const [tags, setTags] = useState<string[]>([]);
   const [hasAlarm, setHasAlarm] = useState(false);
   const [alarmDate, setAlarmDate] = useState<Date>(defaultAlarmDate);
+  const [repeat, setRepeat] = useState<Repeat>('none');
   const [saving, setSaving] = useState(false);
 
   const [newOpen, setNewOpen] = useState(false);
@@ -54,6 +60,9 @@ export default function AddScreen() {
           });
           setCategories(sorted);
           setCategory((prev) => {
+            if (selectedCategory && sorted.some((c) => c.name === selectedCategory)) {
+              return selectedCategory;
+            }
             if (prev && sorted.some((c) => c.name === prev)) return prev;
             return sorted[0]?.name ?? '';
           });
@@ -66,7 +75,7 @@ export default function AddScreen() {
       return () => {
         active = false;
       };
-    }, []),
+    }, [selectedCategory]),
   );
 
   function addTag() {
@@ -129,6 +138,7 @@ export default function AddScreen() {
         category_name: category,
         memo: memo.trim(),
         alarm_date: hasAlarm ? alarmDate.toISOString() : null,
+        repeat: hasAlarm ? repeat : 'none',
         tag: tags,
       });
       Alert.alert('저장되었습니다');
@@ -136,6 +146,7 @@ export default function AddScreen() {
       setTags([]);
       setHasAlarm(false);
       setAlarmDate(defaultAlarmDate());
+      setRepeat('none');
     } catch (e) {
       Alert.alert('저장 실패', e instanceof Error ? e.message : '');
     } finally {
@@ -145,7 +156,20 @@ export default function AddScreen() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <ScreenHeader title="새 메모" subtitle="기록하고 분류하세요" />
+      <ScreenHeader
+        title="새 메모"
+        subtitle="기록하고 분류하세요"
+        right={
+          selectedCategory ? (
+            <Pressable
+              onPress={() => router.navigate('/(tabs)/categories')}
+              className="px-3 py-1.5 rounded-full bg-white/20 active:bg-white/30"
+            >
+              <Text className="text-xs text-white font-medium">← 카테고리</Text>
+            </Pressable>
+          ) : null
+        }
+      />
       <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 64 }}>
         <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">카테고리</Text>
         {loadingCats ? (
@@ -245,7 +269,29 @@ export default function AddScreen() {
             />
           </View>
           {hasAlarm ? (
-            <DateTimePickerButton value={alarmDate} onChange={setAlarmDate} />
+            <>
+              <DateTimePickerButton value={alarmDate} onChange={setAlarmDate} />
+              <View className="flex-row mt-3 -mx-1">
+                {REPEAT_OPTIONS.map((r) => {
+                  const active = r === repeat;
+                  return (
+                    <Pressable
+                      key={r}
+                      onPress={() => setRepeat(r)}
+                      className={`flex-1 mx-1 px-3 py-2 rounded-full border ${
+                        active ? 'bg-brand-500 border-brand-500' : 'bg-white border-gray-200'
+                      }`}
+                    >
+                      <Text
+                        className={`text-xs text-center font-medium ${active ? 'text-white' : 'text-gray-700'}`}
+                      >
+                        {REPEAT_LABELS[r]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
           ) : null}
         </View>
 

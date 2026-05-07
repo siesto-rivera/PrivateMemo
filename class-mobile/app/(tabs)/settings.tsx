@@ -12,16 +12,24 @@ import {
   TextInput,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { ScreenHeader } from '@/components/screen-header';
 import { useAuth } from '@/lib/auth-context';
-import { deleteAccount } from '@/lib/api';
+import { bulkImportMemos, deleteAccount, getMemos } from '@/lib/api';
+import { csvToMemos, memosToCsv } from '@/lib/csv';
 import {
   getPermissionStatus,
   getScheduledCount,
   requestPermission,
-  scheduleTestIn,
   type PermissionStatus,
 } from '@/lib/notifications';
+
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 const PRIVACY_URL = 'https://memoapi.ngoworks.org/privacy/';
 const APP_VERSION = '0.1.0';
@@ -43,6 +51,100 @@ export default function SettingsScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const [busy, setBusy] = useState<'export' | 'import' | null>(null);
+
+  async function exportCsv() {
+    if (busy) return;
+    setBusy('export');
+    try {
+      const memos = await getMemos();
+      const csv = memosToCsv(memos);
+      const filename = `memos-${todayStr()}.csv`;
+      const path = `${FileSystem.documentDirectory}${filename}`;
+      await FileSystem.writeAsStringAsync(path, '﻿' + csv, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(path, {
+          mimeType: 'text/csv',
+          dialogTitle: '메모 CSV 내보내기',
+          UTI: 'public.comma-separated-values-text',
+        });
+      } else {
+        Alert.alert('내보내기 완료', `파일이 저장되었습니다:\n${path}`);
+      }
+    } catch (e) {
+      Alert.alert('내보내기 실패', e instanceof Error ? e.message : '');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function importCsv() {
+    if (busy) return;
+    let pickedUri: string | null = null;
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['text/csv', 'text/comma-separated-values', '*/*'],
+        copyToCacheDirectory: true,
+      });
+      if (res.canceled) return;
+      pickedUri = res.assets[0].uri;
+    } catch (e) {
+      Alert.alert('파일 선택 실패', e instanceof Error ? e.message : '');
+      return;
+    }
+
+    setBusy('import');
+    try {
+      const text = await FileSystem.readAsStringAsync(pickedUri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      const cleaned = text.replace(/^﻿/, '');
+      const { rows, errors } = csvToMemos(cleaned);
+      if (rows.length === 0) {
+        Alert.alert(
+          '가져올 메모가 없습니다',
+          errors.length ? errors[0] : '파일이 비어있거나 형식이 잘못되었습니다.',
+        );
+        return;
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        Alert.alert(
+          '메모 가져오기',
+          `${rows.length}개의 메모를 가져옵니다.${
+            errors.length ? ` (${errors.length}개 행 무시)` : ''
+          }\n계속하시겠습니까?`,
+          [
+            { text: '취소', style: 'cancel', onPress: () => reject(new Error('cancelled')) },
+            { text: '가져오기', onPress: () => resolve() },
+          ],
+        );
+      }).catch(() => {
+        throw new Error('cancelled');
+      });
+
+      const result = await bulkImportMemos(
+        rows.map((r) => ({
+          category_name: r.category_name,
+          memo: r.memo,
+          alarm_date: r.alarm_date,
+          tag: r.tag,
+        })),
+      );
+      const failMsg = result.errors.length
+        ? `\n실패 ${result.errors.length}건 (예: ${result.errors[0].message.slice(0, 80)})`
+        : '';
+      Alert.alert('가져오기 완료', `${result.imported}개 가져옴${failMsg}`);
+    } catch (e) {
+      if (e instanceof Error && e.message === 'cancelled') return;
+      Alert.alert('가져오기 실패', e instanceof Error ? e.message : '');
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const refreshDiagnostics = useCallback(async () => {
     const [s, n] = await Promise.all([getPermissionStatus(), getScheduledCount()]);
     setPermission(s);
@@ -60,16 +162,6 @@ export default function SettingsScreen() {
       };
     }, [refreshDiagnostics]),
   );
-
-  async function onTestNotification() {
-    try {
-      await scheduleTestIn(5);
-      await refreshDiagnostics();
-      Alert.alert('테스트 예약', '5초 뒤 알림이 옵니다. 앱을 백그라운드로 보내거나 그대로 두세요.');
-    } catch (e) {
-      Alert.alert('테스트 실패', e instanceof Error ? e.message : '');
-    }
-  }
 
   async function onTapPermission() {
     if (permission === 'granted') {
@@ -181,17 +273,45 @@ export default function SettingsScreen() {
               </Text>
               <Text className="text-gray-300">›</Text>
             </Pressable>
-            <View className="flex-row items-center px-4 py-3.5 border-b border-gray-100">
+            <View className="flex-row items-center px-4 py-3.5">
               <Text className="text-base mr-3">📋</Text>
               <Text className="flex-1 text-[15px] text-gray-900">예약된 알림</Text>
               <Text className="text-xs text-gray-400 mr-2">{scheduledCount}건</Text>
             </View>
+          </View>
+        </View>
+
+        <View className="mb-6">
+          <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">데이터</Text>
+          <View className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             <Pressable
-              onPress={onTestNotification}
+              onPress={exportCsv}
+              disabled={busy !== null}
+              className="flex-row items-center px-4 py-3.5 active:bg-gray-50 disabled:opacity-50 border-b border-gray-100"
+            >
+              <Text className="text-base mr-3">📤</Text>
+              <Text className="flex-1 text-[15px] text-gray-900">
+                {busy === 'export' ? '내보내는 중…' : '데이터 내보내기 (CSV)'}
+              </Text>
+              <Text className="text-gray-300">›</Text>
+            </Pressable>
+            <Pressable
+              onPress={importCsv}
+              disabled={busy !== null}
+              className="flex-row items-center px-4 py-3.5 active:bg-gray-50 disabled:opacity-50 border-b border-gray-100"
+            >
+              <Text className="text-base mr-3">📥</Text>
+              <Text className="flex-1 text-[15px] text-gray-900">
+                {busy === 'import' ? '가져오는 중…' : '데이터 가져오기 (CSV)'}
+              </Text>
+              <Text className="text-gray-300">›</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/trash')}
               className="flex-row items-center px-4 py-3.5 active:bg-gray-50"
             >
-              <Text className="text-base mr-3">🧪</Text>
-              <Text className="flex-1 text-[15px] text-gray-900">테스트 알림 (5초 뒤)</Text>
+              <Text className="text-base mr-3">🗑️</Text>
+              <Text className="flex-1 text-[15px] text-gray-900">휴지통</Text>
               <Text className="text-gray-300">›</Text>
             </Pressable>
           </View>

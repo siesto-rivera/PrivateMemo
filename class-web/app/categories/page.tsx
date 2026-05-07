@@ -11,12 +11,19 @@ import {
   mergeCategory,
   updateCategory,
 } from '@/lib/api';
+import { useSelectedCategory } from '@/lib/selected-category-context';
 import { CATEGORY_EMOJI, type Category, type Memo } from '@/lib/types';
 
 export default function CategoriesPage() {
+  const { setSelectedCategory } = useSelectedCategory();
   const [categories, setCategories] = useState<Category[]>([]);
   const [memos, setMemos] = useState<Memo[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+
+  function selectCategory(name: string | null) {
+    setSelected(name);
+    setSelectedCategory(name);
+  }
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -176,7 +183,7 @@ export default function CategoriesPage() {
       headerRight={
         selected ? (
           <button
-            onClick={() => setSelected(null)}
+            onClick={() => selectCategory(null)}
             className="px-3 py-1.5 rounded-full bg-white/20 text-xs text-white font-medium hover:bg-white/30"
           >
             ← 전체
@@ -228,7 +235,7 @@ export default function CategoriesPage() {
               return (
                 <div key={c.id} className="relative">
                   <button
-                    onClick={() => setSelected(c.name)}
+                    onClick={() => selectCategory(c.name)}
                     className="w-full bg-white rounded-2xl px-4 py-4 border border-gray-100 hover:bg-gray-50 text-left transition"
                   >
                     <div className="text-2xl mb-1">{emoji}</div>

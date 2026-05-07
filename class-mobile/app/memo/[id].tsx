@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import Markdown from 'react-native-markdown-display';
 
 import { getMemo } from '@/lib/api';
-import { CATEGORY_EMOJI, formatDate, type Memo } from '@/lib/types';
+import { CATEGORY_EMOJI, REPEAT_LABELS, formatDate, type Memo } from '@/lib/types';
 
 export default function MemoDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -49,8 +50,21 @@ export default function MemoDetailScreen() {
             </View>
 
             <View className="bg-white rounded-2xl px-4 py-4 mb-4 border border-gray-100">
-              <Text className="text-xs font-semibold text-gray-500 mb-1">내용</Text>
-              <Text className="text-[15px] text-gray-900 leading-6">{memo.memo}</Text>
+              <Text className="text-xs font-semibold text-gray-500 mb-2">내용</Text>
+              <Markdown
+                style={{
+                  body: { color: '#111827', fontSize: 15, lineHeight: 24 },
+                  paragraph: { marginTop: 0, marginBottom: 8 },
+                  link: { color: '#7c3aed' },
+                  code_inline: {
+                    backgroundColor: '#f3f4f6',
+                    paddingHorizontal: 4,
+                    borderRadius: 4,
+                  },
+                }}
+              >
+                {memo.memo}
+              </Markdown>
             </View>
 
             {memo.alarm_date ? (
@@ -58,6 +72,7 @@ export default function MemoDetailScreen() {
                 <Text className="text-xs font-semibold text-gray-500 mb-1">알림</Text>
                 <Text className="text-sm text-gray-900">
                   🔔 {new Date(memo.alarm_date).toLocaleString('ko-KR')}
+                  {memo.repeat && memo.repeat !== 'none' ? `  🔁 ${REPEAT_LABELS[memo.repeat]}` : ''}
                 </Text>
               </View>
             ) : null}

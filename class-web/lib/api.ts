@@ -1,4 +1,4 @@
-import type { User, Category, Memo } from './types';
+import type { User, Category, Memo, Repeat } from './types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:8001/api';
 
@@ -202,6 +202,7 @@ export function createMemo(payload: {
   category_name: string;
   memo: string;
   alarm_date?: string | null;
+  repeat?: Repeat;
   tag?: string[];
 }): Promise<Memo> {
   return apiFetch<Memo>('/memos/', {
@@ -214,6 +215,36 @@ export function updateMemo(id: number, partial: Partial<Memo>): Promise<Memo> {
   return apiFetch<Memo>(`/memos/${id}/`, {
     method: 'PATCH',
     body: JSON.stringify(partial),
+  });
+}
+
+export function getTrash(): Promise<Memo[]> {
+  return apiFetch<Memo[]>('/memos/trash/');
+}
+
+export function restoreMemo(id: number): Promise<Memo> {
+  return apiFetch<Memo>(`/memos/${id}/restore/`, { method: 'POST' });
+}
+
+export function forceDeleteMemo(id: number): Promise<void> {
+  return apiFetch<void>(`/memos/${id}/?force=1`, { method: 'DELETE' });
+}
+
+export function emptyTrash(): Promise<{ deleted: number }> {
+  return apiFetch('/memos/empty_trash/', { method: 'POST' });
+}
+
+export function bulkImportMemos(
+  memos: Array<{
+    category_name: string;
+    memo: string;
+    alarm_date?: string | null;
+    tag?: string[];
+  }>,
+): Promise<{ imported: number; errors: Array<{ row: number; message: string }> }> {
+  return apiFetch('/memos/bulk_import/', {
+    method: 'POST',
+    body: JSON.stringify({ memos, auto_create_categories: true }),
   });
 }
 

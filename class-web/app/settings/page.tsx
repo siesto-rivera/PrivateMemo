@@ -1,13 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { useAuth } from '@/lib/auth-context';
-import { deleteAccount } from '@/lib/api';
+import { bulkImportMemos, deleteAccount, getMemos } from '@/lib/api';
+import { csvToMemos, memosToCsv } from '@/lib/csv';
 
 const PRIVACY_URL = 'https://memoapi.ngoworks.org/privacy/';
 const APP_VERSION = '0.1.0';
+
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -16,6 +23,9 @@ export default function SettingsPage() {
   const [password, setPassword] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState<'export' | 'import' | null>(null);
 
   function onLogout() {
     logout();
@@ -26,6 +36,70 @@ export default function SettingsPage() {
     setPassword('');
     setDeleteError(null);
     setDeleteOpen(true);
+  }
+
+  async function exportCsv() {
+    if (busy) return;
+    setBusy('export');
+    try {
+      const memos = await getMemos();
+      const csv = memosToCsv(memos);
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `memos-${todayStr()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      alert(`${memos.length}개의 메모를 내보냈습니다.`);
+    } catch (e) {
+      alert(`내보내기 실패: ${e instanceof Error ? e.message : ''}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function pickImportFile() {
+    if (busy) return;
+    fileInputRef.current?.click();
+  }
+
+  async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy('import');
+    try {
+      const text = await file.text();
+      const { rows, errors } = csvToMemos(text);
+      if (rows.length === 0) {
+        alert('가져올 메모가 없습니다.' + (errors.length ? `\n${errors[0]}` : ''));
+        return;
+      }
+      const ok = confirm(
+        `${rows.length}개의 메모를 가져옵니다.${errors.length ? ` (${errors.length}개 행 무시)` : ''}\n계속하시겠습니까?`,
+      );
+      if (!ok) return;
+
+      const result = await bulkImportMemos(
+        rows.map((r) => ({
+          category_name: r.category_name,
+          memo: r.memo,
+          alarm_date: r.alarm_date,
+          tag: r.tag,
+        })),
+      );
+      const failMsg = result.errors.length
+        ? `\n실패 ${result.errors.length}건 (예: ${result.errors[0].message.slice(0, 80)})`
+        : '';
+      alert(`${result.imported}개 가져옴${failMsg}`);
+    } catch (e) {
+      alert(`가져오기 실패: ${e instanceof Error ? e.message : ''}`);
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function confirmDelete() {
@@ -63,6 +137,49 @@ export default function SettingsPage() {
           </button>
         </div>
       ) : null}
+
+      <div className="mb-6">
+        <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">데이터</p>
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <button
+            onClick={exportCsv}
+            disabled={busy !== null}
+            className="w-full flex items-center px-4 py-3.5 hover:bg-gray-50 disabled:opacity-50 text-left border-b border-gray-100"
+          >
+            <span className="text-base mr-3">📤</span>
+            <span className="flex-1 text-[15px] text-gray-900">
+              {busy === 'export' ? '내보내는 중…' : '데이터 내보내기 (CSV)'}
+            </span>
+            <span className="text-gray-300">›</span>
+          </button>
+          <button
+            onClick={pickImportFile}
+            disabled={busy !== null}
+            className="w-full flex items-center px-4 py-3.5 hover:bg-gray-50 disabled:opacity-50 text-left border-b border-gray-100"
+          >
+            <span className="text-base mr-3">📥</span>
+            <span className="flex-1 text-[15px] text-gray-900">
+              {busy === 'import' ? '가져오는 중…' : '데이터 가져오기 (CSV)'}
+            </span>
+            <span className="text-gray-300">›</span>
+          </button>
+          <Link
+            href="/trash"
+            className="w-full flex items-center px-4 py-3.5 hover:bg-gray-50"
+          >
+            <span className="text-base mr-3">🗑️</span>
+            <span className="flex-1 text-[15px] text-gray-900">휴지통</span>
+            <span className="text-gray-300">›</span>
+          </Link>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={onFilePicked}
+          className="hidden"
+        />
+      </div>
 
       <div className="mb-6">
         <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">정보</p>

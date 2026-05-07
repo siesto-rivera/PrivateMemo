@@ -1,11 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { createCategory, createMemo, getCategories } from '@/lib/api';
-import { CATEGORY_EMOJI, type Category } from '@/lib/types';
+import { useSelectedCategory } from '@/lib/selected-category-context';
+import { CATEGORY_EMOJI, REPEAT_LABELS, type Category, type Repeat } from '@/lib/types';
+
+const REPEAT_OPTIONS: Repeat[] = ['none', 'daily', 'weekly', 'monthly'];
 
 export default function AddPage() {
+  const router = useRouter();
+  const { selectedCategory } = useSelectedCategory();
   const [categories, setCategories] = useState<Category[]>([]);
   const [category, setCategory] = useState<string>('');
   const [memo, setMemo] = useState('');
@@ -13,6 +19,7 @@ export default function AddPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [hasAlarm, setHasAlarm] = useState(false);
   const [alarmDate, setAlarmDate] = useState('');
+  const [repeat, setRepeat] = useState<Repeat>('none');
   const [loadingCats, setLoadingCats] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -35,7 +42,13 @@ export default function AddPage() {
             return a.name.localeCompare(b.name, 'ko');
           });
           setCategories(sorted);
-          if (sorted.length > 0) setCategory(sorted[0].name);
+          if (sorted.length > 0) {
+            const initial =
+              selectedCategory && sorted.some((c) => c.name === selectedCategory)
+                ? selectedCategory
+                : sorted[0].name;
+            setCategory(initial);
+          }
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : '카테고리를 불러오지 못했습니다');
@@ -46,7 +59,7 @@ export default function AddPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedCategory]);
 
   function addTag() {
     const t = tagDraft.trim().replace(/^#/, '');
@@ -107,6 +120,7 @@ export default function AddPage() {
         category_name: category,
         memo,
         alarm_date: hasAlarm ? alarmDate || null : null,
+        repeat: hasAlarm ? repeat : 'none',
         tag: tags,
       });
       alert('저장되었습니다');
@@ -114,6 +128,7 @@ export default function AddPage() {
       setTags([]);
       setHasAlarm(false);
       setAlarmDate('');
+      setRepeat('none');
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장에 실패했습니다');
     } finally {
@@ -122,7 +137,20 @@ export default function AddPage() {
   }
 
   return (
-    <AppShell title="새 메모" subtitle="기록하고 분류하세요">
+    <AppShell
+      title="새 메모"
+      subtitle="기록하고 분류하세요"
+      headerRight={
+        selectedCategory ? (
+          <button
+            onClick={() => router.push('/categories')}
+            className="px-3 py-1.5 rounded-full bg-white/20 text-xs text-white font-medium hover:bg-white/30"
+          >
+            ← 카테고리
+          </button>
+        ) : null
+      }
+    >
       <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">카테고리</p>
       {loadingCats ? (
         <p className="text-sm text-gray-500 mb-5">로딩 중…</p>
@@ -211,12 +239,30 @@ export default function AddPage() {
           />
         </label>
         {hasAlarm ? (
-          <input
-            type="datetime-local"
-            value={alarmDate}
-            onChange={(e) => setAlarmDate(e.target.value)}
-            className="mt-3 w-full bg-gray-50 rounded-xl px-3 py-2 text-[14px] text-gray-900 outline-none"
-          />
+          <>
+            <input
+              type="datetime-local"
+              value={alarmDate}
+              onChange={(e) => setAlarmDate(e.target.value)}
+              className="mt-3 w-full bg-gray-50 rounded-xl px-3 py-2 text-[14px] text-gray-900 outline-none"
+            />
+            <div className="flex gap-1 mt-3">
+              {REPEAT_OPTIONS.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRepeat(r)}
+                  className={`flex-1 px-3 py-2 rounded-full border text-xs font-medium ${
+                    r === repeat
+                      ? 'bg-brand-500 border-brand-500 text-white'
+                      : 'bg-white border-gray-200 text-gray-700'
+                  }`}
+                >
+                  {REPEAT_LABELS[r]}
+                </button>
+              ))}
+            </div>
+          </>
         ) : null}
       </div>
 

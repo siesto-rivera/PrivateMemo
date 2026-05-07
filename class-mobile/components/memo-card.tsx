@@ -11,9 +11,18 @@ import {
   Switch,
   Alert,
 } from 'react-native';
-import { Memo, formatDate, CATEGORY_EMOJI, type Category } from '@/lib/types';
+import {
+  Memo,
+  formatDate,
+  CATEGORY_EMOJI,
+  REPEAT_LABELS,
+  type Category,
+  type Repeat,
+} from '@/lib/types';
 import { deleteMemo, getCategories, updateMemo } from '@/lib/api';
 import { DateTimePickerButton } from '@/components/datetime-picker-button';
+
+const REPEAT_OPTIONS: Repeat[] = ['none', 'daily', 'weekly', 'monthly'];
 
 type Props = { memo: Memo; onChanged?: () => void };
 
@@ -34,6 +43,7 @@ export function MemoCard({ memo, onChanged }: Props) {
             <View className="ml-auto bg-amber-50 px-2 py-0.5 rounded-full">
               <Text className="text-[10px] text-amber-700 font-medium">
                 🔔 {formatDate(memo.alarm_date)}
+                {memo.repeat && memo.repeat !== 'none' ? ` 🔁 ${REPEAT_LABELS[memo.repeat]}` : ''}
               </Text>
             </View>
           ) : null}
@@ -83,6 +93,7 @@ function MemoEditModal({
       return d;
     })(),
   );
+  const [repeat, setRepeat] = useState<Repeat>(memo.repeat ?? 'none');
   const [tags, setTags] = useState<string[]>(memo.tag ?? []);
   const [tagDraft, setTagDraft] = useState('');
   const [saving, setSaving] = useState(false);
@@ -135,6 +146,7 @@ function MemoEditModal({
         category_name: category,
         memo: content.trim(),
         alarm_date: hasAlarm ? alarmDate.toISOString() : null,
+        repeat: hasAlarm ? repeat : 'none',
         tag: tags,
       });
       onClose();
@@ -144,7 +156,7 @@ function MemoEditModal({
     } finally {
       setSaving(false);
     }
-  }, [saving, content, category, hasAlarm, alarmDate, tags, memo.id, onClose, onChanged]);
+  }, [saving, content, category, hasAlarm, alarmDate, repeat, tags, memo.id, onClose, onChanged]);
 
   function onDelete() {
     Alert.alert('메모 삭제', '이 메모를 삭제하시겠습니까?', [
@@ -273,7 +285,29 @@ function MemoEditModal({
                   />
                 </View>
                 {hasAlarm ? (
-                  <DateTimePickerButton value={alarmDate} onChange={setAlarmDate} />
+                  <>
+                    <DateTimePickerButton value={alarmDate} onChange={setAlarmDate} />
+                    <View className="flex-row mt-3 -mx-1">
+                      {REPEAT_OPTIONS.map((r) => {
+                        const active = r === repeat;
+                        return (
+                          <Pressable
+                            key={r}
+                            onPress={() => setRepeat(r)}
+                            className={`flex-1 mx-1 px-3 py-2 rounded-full border ${
+                              active ? 'bg-brand-500 border-brand-500' : 'bg-white border-gray-200'
+                            }`}
+                          >
+                            <Text
+                              className={`text-xs text-center font-medium ${active ? 'text-white' : 'text-gray-700'}`}
+                            >
+                              {REPEAT_LABELS[r]}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </>
                 ) : null}
               </View>
 
