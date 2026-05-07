@@ -6,40 +6,8 @@ import { AppShell } from '@/components/AppShell';
 import { useAuth } from '@/lib/auth-context';
 import { deleteAccount } from '@/lib/api';
 
-type Row = {
-  icon: string;
-  label: string;
-  hint?: string;
-  toggle?: boolean;
-  on?: boolean;
-};
-
-const sections: { title: string; rows: Row[] }[] = [
-  {
-    title: '환경 설정',
-    rows: [
-      { icon: '🌙', label: '다크 모드', toggle: true, on: false },
-      { icon: '🔔', label: '푸시 알림', hint: '허용됨', toggle: true, on: true },
-      { icon: '🔒', label: '앱 잠금', hint: '꺼짐' },
-    ],
-  },
-  {
-    title: '데이터',
-    rows: [
-      { icon: '☁️', label: '백업 및 동기화', hint: '연결 안 됨' },
-      { icon: '⬇️', label: '데이터 가져오기' },
-      { icon: '⬆️', label: '데이터 내보내기' },
-    ],
-  },
-  {
-    title: '정보',
-    rows: [
-      { icon: '📄', label: '오픈소스 라이선스' },
-      { icon: '✉️', label: '문의하기' },
-      { icon: 'ℹ️', label: '버전', hint: '0.1.0 (UI 데모)' },
-    ],
-  },
-];
+const PRIVACY_URL = 'https://memoapi.ngoworks.org/privacy/';
+const APP_VERSION = '0.1.0';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -95,48 +63,27 @@ export default function SettingsPage() {
           </button>
         </div>
       ) : null}
-      {sections.map((s) => (
-        <div key={s.title} className="mb-6">
-          <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">
-            {s.title}
-          </p>
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            {s.rows.map((r, i) => (
-              <button
-                key={r.label}
-                className={`w-full flex items-center px-4 py-3.5 hover:bg-gray-50 text-left ${
-                  i !== s.rows.length - 1 ? 'border-b border-gray-100' : ''
-                }`}
-              >
-                <span className="text-base mr-3">{r.icon}</span>
-                <span className="flex-1 text-[15px] text-gray-900">
-                  {r.label}
-                </span>
-                {r.toggle ? (
-                  <span
-                    className={`w-10 h-6 rounded-full relative transition ${
-                      r.on ? 'bg-brand-500' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition ${
-                        r.on ? 'left-[1.125rem]' : 'left-0.5'
-                      }`}
-                    />
-                  </span>
-                ) : (
-                  <span className="flex items-center">
-                    {r.hint ? (
-                      <span className="text-xs text-gray-400 mr-2">{r.hint}</span>
-                    ) : null}
-                    <span className="text-gray-300">›</span>
-                  </span>
-                )}
-              </button>
-            ))}
+
+      <div className="mb-6">
+        <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">정보</p>
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <a
+            href={PRIVACY_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full flex items-center px-4 py-3.5 hover:bg-gray-50"
+          >
+            <span className="text-base mr-3">📄</span>
+            <span className="flex-1 text-[15px] text-gray-900">개인정보 처리방침</span>
+            <span className="text-gray-300">↗</span>
+          </a>
+          <div className="flex items-center px-4 py-3.5 border-t border-gray-100">
+            <span className="text-base mr-3">ℹ️</span>
+            <span className="flex-1 text-[15px] text-gray-900">버전</span>
+            <span className="text-xs text-gray-400">{APP_VERSION}</span>
           </div>
         </div>
-      ))}
+      </div>
 
       <div className="mb-6">
         <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">위험 영역</p>
@@ -158,7 +105,7 @@ export default function SettingsPage() {
       </div>
 
       <p className="text-center text-[11px] text-gray-400 mt-2">
-        지극히 사적인 메모장 · UI 데모
+        지극히 사적인 메모장
       </p>
 
       {deleteOpen ? (

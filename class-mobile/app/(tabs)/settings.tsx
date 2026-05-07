@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   Pressable,
-  Switch,
   Alert,
   Linking,
   Modal,
@@ -24,38 +23,8 @@ import {
   type PermissionStatus,
 } from '@/lib/notifications';
 
-type Row = {
-  icon: string;
-  label: string;
-  hint?: string;
-  toggle?: boolean;
-};
-
-const sections: { title: string; rows: Row[] }[] = [
-  {
-    title: '환경 설정',
-    rows: [
-      { icon: '🌙', label: '다크 모드', toggle: true },
-      { icon: '🔒', label: '앱 잠금', hint: '꺼짐' },
-    ],
-  },
-  {
-    title: '데이터',
-    rows: [
-      { icon: '☁️', label: '백업 및 동기화', hint: '연결 안 됨' },
-      { icon: '⬇️', label: '데이터 가져오기' },
-      { icon: '⬆️', label: '데이터 내보내기' },
-    ],
-  },
-  {
-    title: '정보',
-    rows: [
-      { icon: '📄', label: '오픈소스 라이선스' },
-      { icon: '✉️', label: '문의하기' },
-      { icon: 'ℹ️', label: '버전', hint: '0.1.0 (UI 데모)' },
-    ],
-  },
-];
+const PRIVACY_URL = 'https://memoapi.ngoworks.org/privacy/';
+const APP_VERSION = '0.1.0';
 
 const statusLabel: Record<PermissionStatus, string> = {
   granted: '허용됨',
@@ -176,7 +145,9 @@ export default function SettingsScreen() {
             <View className="flex-1 pr-3">
               <Text className="text-xs font-semibold text-gray-500 mb-1">계정</Text>
               <Text className="text-base font-semibold text-gray-900">{user.name}</Text>
-              <Text className="text-sm text-gray-500 mt-0.5" numberOfLines={1}>{user.email}</Text>
+              <Text className="text-sm text-gray-500 mt-0.5" numberOfLines={1}>
+                {user.email}
+              </Text>
             </View>
             <Pressable
               onPress={onLogout}
@@ -226,37 +197,24 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {sections.map((s) => (
-          <View key={s.title} className="mb-6">
-            <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">{s.title}</Text>
-            <View className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              {s.rows.map((r, i) => (
-                <Pressable
-                  key={r.label}
-                  className={`flex-row items-center px-4 py-3.5 active:bg-gray-50 ${
-                    i !== s.rows.length - 1 ? 'border-b border-gray-100' : ''
-                  }`}
-                >
-                  <Text className="text-base mr-3">{r.icon}</Text>
-                  <Text className="flex-1 text-[15px] text-gray-900">{r.label}</Text>
-                  {r.toggle ? (
-                    <Switch
-                      value={r.label !== '앱 잠금'}
-                      trackColor={{ true: '#7c3aed', false: '#d1d5db' }}
-                    />
-                  ) : (
-                    <View className="flex-row items-center">
-                      {r.hint ? (
-                        <Text className="text-xs text-gray-400 mr-2">{r.hint}</Text>
-                      ) : null}
-                      <Text className="text-gray-300">›</Text>
-                    </View>
-                  )}
-                </Pressable>
-              ))}
+        <View className="mb-6">
+          <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">정보</Text>
+          <View className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <Pressable
+              onPress={() => Linking.openURL(PRIVACY_URL)}
+              className="flex-row items-center px-4 py-3.5 active:bg-gray-50 border-b border-gray-100"
+            >
+              <Text className="text-base mr-3">📄</Text>
+              <Text className="flex-1 text-[15px] text-gray-900">개인정보 처리방침</Text>
+              <Text className="text-gray-300">↗</Text>
+            </Pressable>
+            <View className="flex-row items-center px-4 py-3.5">
+              <Text className="text-base mr-3">ℹ️</Text>
+              <Text className="flex-1 text-[15px] text-gray-900">버전</Text>
+              <Text className="text-xs text-gray-400">{APP_VERSION}</Text>
             </View>
           </View>
-        ))}
+        </View>
 
         <View className="mb-6">
           <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">위험 영역</Text>
@@ -276,7 +234,7 @@ export default function SettingsScreen() {
         </View>
 
         <Text className="text-center text-[11px] text-gray-400 mt-2">
-          지극히 사적인 메모장 · UI 데모
+          지극히 사적인 메모장
         </Text>
       </ScrollView>
 
