@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TextInput, RefreshControl } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { View, Text, ScrollView, TextInput, RefreshControl, Pressable } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/screen-header';
 import { MemoCard } from '@/components/memo-card';
 import { getMemos } from '@/lib/api';
@@ -8,6 +8,7 @@ import { syncAlarms } from '@/lib/notifications';
 import type { Memo } from '@/lib/types';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [memos, setMemos] = useState<Memo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +61,19 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <ScreenHeader title="지극히 사적인 메모장" subtitle={`총 ${memos.length}개의 메모`} />
+      <ScreenHeader
+        title="지극히 사적인 메모장"
+        subtitle={`총 ${memos.length}개의 메모`}
+        right={
+          <Pressable
+            onPress={() => router.push('/add')}
+            hitSlop={8}
+            className="px-3 py-1.5 rounded-full bg-white/20 active:bg-white/30"
+          >
+            <Text className="text-base text-white font-medium leading-none">＋</Text>
+          </Pressable>
+        }
+      />
       <ScrollView
         className="flex-1 px-5 pt-4"
         contentContainerStyle={{ paddingBottom: 32 }}

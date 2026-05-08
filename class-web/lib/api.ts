@@ -202,8 +202,10 @@ export function createMemo(payload: {
   category_name: string;
   memo: string;
   alarm_date?: string | null;
+  schedule_date?: string | null;
   repeat?: Repeat;
   tag?: string[];
+  images?: string[];
 }): Promise<Memo> {
   return apiFetch<Memo>('/memos/', {
     method: 'POST',

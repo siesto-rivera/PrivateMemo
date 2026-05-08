@@ -9,9 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.ngoworks.privatememo",
       "supportsTablet": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSFaceIDUsageDescription": "앱 잠금 해제에 Face ID를 사용합니다."
       }
     },
     "android": {
@@ -43,7 +45,22 @@
         }
       ],
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "메모에 첨부할 사진을 선택하기 위해 사진 접근이 필요합니다.",
+          "savePhotosPermission": "촬영한 사진을 사진 앱에 저장합니다.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "메모에 첨부할 사진을 선택합니다.",
+          "cameraPermission": "메모에 사진을 첨부하기 위해 카메라를 사용합니다."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

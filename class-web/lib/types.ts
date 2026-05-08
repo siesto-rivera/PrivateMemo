@@ -25,8 +25,10 @@ export type Memo = {
   category_name: string;
   memo: string;
   alarm_date?: string | null;
+  schedule_date?: string | null; // YYYY-MM-DD
   repeat: Repeat;
   tag: string[];
+  images: string[];
   createDate: string;
 };
 

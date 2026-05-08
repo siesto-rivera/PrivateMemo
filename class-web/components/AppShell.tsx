@@ -8,7 +8,7 @@ import { AuthGuard } from './AuthGuard';
 const TABS = [
   { href: '/', label: '홈', icon: '🏠' },
   { href: '/categories', label: '카테고리', icon: '🗂️' },
-  { href: '/add', label: '추가', icon: '➕' },
+  { href: '/calendar', label: '일정', icon: '📅' },
   { href: '/alarms', label: '알림', icon: '🔔' },
   { href: '/settings', label: '설정', icon: '⚙️' },
 ];

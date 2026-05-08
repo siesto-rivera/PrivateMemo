@@ -3,6 +3,7 @@ import { View, Text, ScrollView, Pressable } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
 
+import { AssetImage } from '@/components/asset-image';
 import { getMemo } from '@/lib/api';
 import { CATEGORY_EMOJI, REPEAT_LABELS, formatDate, type Memo } from '@/lib/types';
 
@@ -87,6 +88,19 @@ export default function MemoDetailScreen() {
                     </View>
                   ))}
                 </View>
+              </View>
+            ) : null}
+
+            {memo.images && memo.images.length > 0 ? (
+              <View className="bg-white rounded-2xl px-4 py-4 mb-4 border border-gray-100">
+                <Text className="text-xs font-semibold text-gray-500 mb-2">사진</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {memo.images.map((id) => (
+                    <View key={id} className="mr-2">
+                      <AssetImage assetId={id} size={140} />
+                    </View>
+                  ))}
+                </ScrollView>
               </View>
             ) : null}
 

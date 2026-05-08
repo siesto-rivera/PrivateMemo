@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   Pressable,
+  Switch,
   Alert,
   Linking,
   Modal,
@@ -16,6 +17,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { ScreenHeader } from '@/components/screen-header';
+import { useAppLock } from '@/lib/app-lock-context';
 import { useAuth } from '@/lib/auth-context';
 import { bulkImportMemos, deleteAccount, getMemos } from '@/lib/api';
 import { csvToMemos, memosToCsv } from '@/lib/csv';
@@ -43,8 +45,27 @@ const statusLabel: Record<PermissionStatus, string> = {
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const appLock = useAppLock();
   const [permission, setPermission] = useState<PermissionStatus>('undetermined');
   const [scheduledCount, setScheduledCount] = useState<number>(0);
+
+  async function onToggleAppLock(next: boolean) {
+    if (next && !appLock.hasHardware) {
+      Alert.alert('이 기기는 생체 인증을 지원하지 않습니다');
+      return;
+    }
+    if (next && !appLock.isEnrolled) {
+      Alert.alert(
+        '생체 인증이 등록되지 않았습니다',
+        '시스템 설정에서 Face ID, 지문, 또는 패스코드를 먼저 등록해주세요.',
+      );
+      return;
+    }
+    const ok = await appLock.setEnabled(next);
+    if (!ok) {
+      Alert.alert(next ? '활성화 실패' : '비활성화 실패', '인증이 취소되었거나 실패했습니다.');
+    }
+  }
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -279,6 +300,36 @@ export default function SettingsScreen() {
               <Text className="text-xs text-gray-400 mr-2">{scheduledCount}건</Text>
             </View>
           </View>
+        </View>
+
+        <View className="mb-6">
+          <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">보안</Text>
+          <View className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <View className="flex-row items-center px-4 py-3.5">
+              <Text className="text-base mr-3">🔒</Text>
+              <View className="flex-1">
+                <Text className="text-[15px] text-gray-900">앱 잠금</Text>
+                <Text className="text-[11px] text-gray-400 mt-0.5">
+                  앱 진입 시 Face ID/Touch ID로 인증
+                </Text>
+              </View>
+              <Switch
+                value={appLock.enabled}
+                onValueChange={onToggleAppLock}
+                trackColor={{ true: '#7c3aed', false: '#d1d5db' }}
+                disabled={!appLock.ready}
+              />
+            </View>
+          </View>
+          {!appLock.hasHardware ? (
+            <Text className="text-[11px] text-gray-400 mt-2 ml-1">
+              이 기기는 생체 인증을 지원하지 않습니다.
+            </Text>
+          ) : !appLock.isEnrolled ? (
+            <Text className="text-[11px] text-gray-400 mt-2 ml-1">
+              시스템 설정에서 생체 인증/패스코드를 먼저 등록해주세요.
+            </Text>
+          ) : null}
         </View>
 
         <View className="mb-6">

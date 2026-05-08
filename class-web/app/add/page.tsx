@@ -17,6 +17,8 @@ export default function AddPage() {
   const [memo, setMemo] = useState('');
   const [tagDraft, setTagDraft] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [hasSchedule, setHasSchedule] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState('');
   const [hasAlarm, setHasAlarm] = useState(false);
   const [alarmDate, setAlarmDate] = useState('');
   const [repeat, setRepeat] = useState<Repeat>('none');
@@ -120,12 +122,15 @@ export default function AddPage() {
         category_name: category,
         memo,
         alarm_date: hasAlarm ? alarmDate || null : null,
+        schedule_date: hasSchedule ? scheduleDate || null : null,
         repeat: hasAlarm ? repeat : 'none',
         tag: tags,
       });
       alert('저장되었습니다');
       setMemo('');
       setTags([]);
+      setHasSchedule(false);
+      setScheduleDate('');
       setHasAlarm(false);
       setAlarmDate('');
       setRepeat('none');
@@ -221,6 +226,31 @@ export default function AddPage() {
             #{t} ✕
           </button>
         ))}
+      </div>
+
+      <div className="bg-white rounded-2xl px-4 py-3 mb-5 border border-gray-100">
+        <label className="flex items-center justify-between cursor-pointer">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">📅 일정에 추가</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              선택한 날짜의 일정 캘린더에 표시됩니다
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            checked={hasSchedule}
+            onChange={(e) => setHasSchedule(e.target.checked)}
+            className="w-10 h-6 appearance-none bg-gray-300 rounded-full relative cursor-pointer transition checked:bg-brand-500 before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:w-5 before:h-5 before:bg-white before:rounded-full before:transition checked:before:translate-x-4"
+          />
+        </label>
+        {hasSchedule ? (
+          <input
+            type="date"
+            value={scheduleDate}
+            onChange={(e) => setScheduleDate(e.target.value)}
+            className="mt-3 w-full bg-gray-50 rounded-xl px-3 py-2 text-[14px] text-gray-900 outline-none"
+          />
+        ) : null}
       </div>
 
       <div className="bg-white rounded-2xl px-4 py-3 mb-5 border border-gray-100">

@@ -14,6 +14,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/screen-header';
 import { DateTimePickerButton } from '@/components/datetime-picker-button';
+import { ImageAttachRow } from '@/components/image-attach-row';
 import { createCategory, createMemo, getCategories } from '@/lib/api';
 import { useSelectedCategory } from '@/lib/selected-category-context';
 import { CATEGORY_EMOJI, REPEAT_LABELS, type Category, type Repeat } from '@/lib/types';
@@ -35,6 +36,9 @@ export default function AddScreen() {
   const [memo, setMemo] = useState('');
   const [tagDraft, setTagDraft] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
+  const [hasSchedule, setHasSchedule] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState<Date>(() => new Date());
   const [hasAlarm, setHasAlarm] = useState(false);
   const [alarmDate, setAlarmDate] = useState<Date>(defaultAlarmDate);
   const [repeat, setRepeat] = useState<Repeat>('none');
@@ -138,12 +142,19 @@ export default function AddScreen() {
         category_name: category,
         memo: memo.trim(),
         alarm_date: hasAlarm ? alarmDate.toISOString() : null,
+        schedule_date: hasSchedule
+          ? `${scheduleDate.getFullYear()}-${String(scheduleDate.getMonth() + 1).padStart(2, '0')}-${String(scheduleDate.getDate()).padStart(2, '0')}`
+          : null,
         repeat: hasAlarm ? repeat : 'none',
         tag: tags,
+        images,
       });
       Alert.alert('저장되었습니다');
       setMemo('');
       setTags([]);
+      setImages([]);
+      setHasSchedule(false);
+      setScheduleDate(new Date());
       setHasAlarm(false);
       setAlarmDate(defaultAlarmDate());
       setRepeat('none');
@@ -160,14 +171,20 @@ export default function AddScreen() {
         title="새 메모"
         subtitle="기록하고 분류하세요"
         right={
-          selectedCategory ? (
-            <Pressable
-              onPress={() => router.navigate('/(tabs)/categories')}
-              className="px-3 py-1.5 rounded-full bg-white/20 active:bg-white/30"
-            >
-              <Text className="text-xs text-white font-medium">← 카테고리</Text>
-            </Pressable>
-          ) : null
+          <Pressable
+            onPress={() =>
+              selectedCategory
+                ? router.navigate('/(tabs)/categories')
+                : router.canGoBack()
+                  ? router.back()
+                  : router.navigate('/(tabs)')
+            }
+            className="px-3 py-1.5 rounded-full bg-white/20 active:bg-white/30"
+          >
+            <Text className="text-xs text-white font-medium">
+              {selectedCategory ? '← 카테고리' : '← 닫기'}
+            </Text>
+          </Pressable>
         }
       />
       <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 64 }}>
@@ -252,6 +269,34 @@ export default function AddScreen() {
               <Text className="text-[12px] text-brand-700">#{t} ✕</Text>
             </Pressable>
           ))}
+        </View>
+
+        <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">사진</Text>
+        <View className="mb-5">
+          <ImageAttachRow ids={images} onChange={setImages} />
+        </View>
+
+        <View className="bg-white rounded-2xl px-4 py-3 mb-5 border border-gray-100">
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="text-sm font-semibold text-gray-900">📅 일정에 추가</Text>
+              <Text className="text-[11px] text-gray-400 mt-0.5">
+                선택한 날짜의 일정 캘린더에 표시됩니다
+              </Text>
+            </View>
+            <Switch
+              value={hasSchedule}
+              onValueChange={setHasSchedule}
+              trackColor={{ true: '#7c3aed', false: '#d1d5db' }}
+            />
+          </View>
+          {hasSchedule ? (
+            <DateTimePickerButton
+              value={scheduleDate}
+              onChange={setScheduleDate}
+              mode="date"
+            />
+          ) : null}
         </View>
 
         <View className="bg-white rounded-2xl px-4 py-3 mb-5 border border-gray-100">

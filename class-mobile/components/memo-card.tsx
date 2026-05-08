@@ -20,13 +20,15 @@ import {
   type Repeat,
 } from '@/lib/types';
 import { deleteMemo, getCategories, updateMemo } from '@/lib/api';
+import { AssetImage } from '@/components/asset-image';
 import { DateTimePickerButton } from '@/components/datetime-picker-button';
+import { ImageAttachRow } from '@/components/image-attach-row';
 
 const REPEAT_OPTIONS: Repeat[] = ['none', 'daily', 'weekly', 'monthly'];
 
-type Props = { memo: Memo; onChanged?: () => void };
+type Props = { memo: Memo; onChanged?: () => void; highlighted?: boolean };
 
-export function MemoCard({ memo, onChanged }: Props) {
+export function MemoCard({ memo, onChanged, highlighted = false }: Props) {
   const emoji = CATEGORY_EMOJI[memo.category_name] ?? '📝';
   const [open, setOpen] = useState(false);
 
@@ -34,7 +36,11 @@ export function MemoCard({ memo, onChanged }: Props) {
     <>
       <Pressable
         onPress={() => setOpen(true)}
-        className="bg-white rounded-2xl px-4 py-3.5 mb-3 border border-gray-100 active:bg-gray-50"
+        className={`rounded-2xl px-4 py-3.5 mb-3 border ${
+          highlighted
+            ? 'bg-brand-50 border-brand-200 active:bg-brand-100'
+            : 'bg-white border-gray-100 active:bg-gray-50'
+        }`}
       >
         <View className="flex-row items-center mb-1.5">
           <Text className="text-lg mr-2">{emoji}</Text>
@@ -48,16 +54,36 @@ export function MemoCard({ memo, onChanged }: Props) {
             </View>
           ) : null}
         </View>
-        <Text className="text-[15px] text-gray-900 leading-5" numberOfLines={2}>
-          {memo.memo}
-        </Text>
+        <View className="flex-row">
+          <View className="flex-1">
+            <Text className="text-[15px] text-gray-900 leading-5" numberOfLines={2}>
+              {memo.memo}
+            </Text>
+          </View>
+          {memo.images && memo.images.length > 0 ? (
+            <View className="ml-3 relative">
+              <AssetImage assetId={memo.images[0]} size={44} />
+              {memo.images.length > 1 ? (
+                <View className="absolute -bottom-1 -right-1 bg-gray-700 px-1.5 py-0.5 rounded-full">
+                  <Text className="text-[10px] text-white font-semibold">
+                    +{memo.images.length - 1}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
         <View className="flex-row flex-wrap items-center mt-2">
           {memo.tag.map((t) => (
             <View key={t} className="bg-gray-100 px-2 py-0.5 rounded-full mr-1.5 mb-1">
               <Text className="text-[11px] text-gray-600">#{t}</Text>
             </View>
           ))}
-          <Text className="text-[11px] text-gray-400 ml-auto">{formatDate(memo.createDate)}</Text>
+          <Text className="text-[11px] text-gray-400 ml-auto">
+            {memo.schedule_date
+              ? `📅 ${memo.schedule_date.replace(/-/g, '.')}`
+              : formatDate(memo.createDate)}
+          </Text>
         </View>
       </Pressable>
 
@@ -85,6 +111,10 @@ function MemoEditModal({
   const [loadingCats, setLoadingCats] = useState(true);
   const [category, setCategory] = useState<string>(memo.category_name);
   const [content, setContent] = useState(memo.memo);
+  const [hasSchedule, setHasSchedule] = useState(!!memo.schedule_date);
+  const [scheduleDate, setScheduleDate] = useState<Date>(() =>
+    memo.schedule_date ? new Date(memo.schedule_date + 'T00:00:00') : new Date(),
+  );
   const [hasAlarm, setHasAlarm] = useState(!!memo.alarm_date);
   const [alarmDate, setAlarmDate] = useState<Date>(
     memo.alarm_date ? new Date(memo.alarm_date) : (() => {
@@ -95,6 +125,7 @@ function MemoEditModal({
   );
   const [repeat, setRepeat] = useState<Repeat>(memo.repeat ?? 'none');
   const [tags, setTags] = useState<string[]>(memo.tag ?? []);
+  const [images, setImages] = useState<string[]>(memo.images ?? []);
   const [tagDraft, setTagDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -146,8 +177,12 @@ function MemoEditModal({
         category_name: category,
         memo: content.trim(),
         alarm_date: hasAlarm ? alarmDate.toISOString() : null,
+        schedule_date: hasSchedule
+          ? `${scheduleDate.getFullYear()}-${String(scheduleDate.getMonth() + 1).padStart(2, '0')}-${String(scheduleDate.getDate()).padStart(2, '0')}`
+          : null,
         repeat: hasAlarm ? repeat : 'none',
         tag: tags,
+        images,
       });
       onClose();
       onChanged?.();
@@ -156,7 +191,7 @@ function MemoEditModal({
     } finally {
       setSaving(false);
     }
-  }, [saving, content, category, hasAlarm, alarmDate, repeat, tags, memo.id, onClose, onChanged]);
+  }, [saving, content, category, hasAlarm, alarmDate, hasSchedule, scheduleDate, repeat, tags, images, memo.id, onClose, onChanged]);
 
   function onDelete() {
     Alert.alert('메모 삭제', '이 메모를 삭제하시겠습니까?', [
@@ -268,6 +303,34 @@ function MemoEditModal({
                     <Text className="text-[12px] text-brand-700">#{t} ✕</Text>
                   </Pressable>
                 ))}
+              </View>
+
+              <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">사진</Text>
+              <View className="mb-4">
+                <ImageAttachRow ids={images} onChange={setImages} />
+              </View>
+
+              <View className="bg-gray-50 rounded-2xl px-4 py-3 mb-4 border border-gray-100">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1 pr-3">
+                    <Text className="text-sm font-semibold text-gray-900">📅 일정에 추가</Text>
+                    <Text className="text-[11px] text-gray-400 mt-0.5">
+                      선택한 날짜의 일정 캘린더에 표시됩니다
+                    </Text>
+                  </View>
+                  <Switch
+                    value={hasSchedule}
+                    onValueChange={setHasSchedule}
+                    trackColor={{ true: '#7c3aed', false: '#d1d5db' }}
+                  />
+                </View>
+                {hasSchedule ? (
+                  <DateTimePickerButton
+                    value={scheduleDate}
+                    onChange={setScheduleDate}
+                    mode="date"
+                  />
+                ) : null}
               </View>
 
               <View className="bg-gray-50 rounded-2xl px-4 py-3 mb-4 border border-gray-100">

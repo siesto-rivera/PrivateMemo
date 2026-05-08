@@ -217,8 +217,10 @@ export type CreateMemoPayload = {
   category_name: string;
   memo: string;
   alarm_date?: string | null;
+  schedule_date?: string | null;
   repeat?: Repeat;
   tag?: string[];
+  images?: string[];
 };
 
 export async function createMemo(payload: CreateMemoPayload): Promise<Memo> {

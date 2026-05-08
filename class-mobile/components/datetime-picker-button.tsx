@@ -4,12 +4,16 @@ import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 
+type Mode = 'datetime' | 'date';
+
 type Props = {
   value: Date;
   onChange: (d: Date) => void;
+  mode?: Mode;
 };
 
-export function DateTimePickerButton({ value, onChange }: Props) {
+export function DateTimePickerButton({ value, onChange, mode = 'datetime' }: Props) {
+  const dateOnly = mode === 'date';
   const [androidStep, setAndroidStep] = useState<'idle' | 'date' | 'time'>('idle');
   const [iosVisible, setIosVisible] = useState(false);
 
@@ -29,7 +33,7 @@ export function DateTimePickerButton({ value, onChange }: Props) {
     const updated = new Date(value);
     updated.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
     onChange(updated);
-    setAndroidStep('time');
+    setAndroidStep(dateOnly ? 'idle' : 'time');
   }
 
   function handleAndroidTime(event: DateTimePickerEvent, selected?: Date) {
@@ -45,13 +49,19 @@ export function DateTimePickerButton({ value, onChange }: Props) {
     if (selected) onChange(selected);
   }
 
-  const formatted = value.toLocaleString('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const formatted = dateOnly
+    ? value.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+    : value.toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
 
   return (
     <>
@@ -85,7 +95,7 @@ export function DateTimePickerButton({ value, onChange }: Props) {
           >
             <DateTimePicker
               value={value}
-              mode="datetime"
+              mode={dateOnly ? 'date' : 'datetime'}
               display="spinner"
               onChange={handleIosChange}
               locale="ko-KR"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { MemoCard } from '@/components/MemoCard';
 import { getMemos } from '@/lib/api';
@@ -57,6 +58,15 @@ export default function HomePage() {
     <AppShell
       title="지극히 사적인 메모장"
       subtitle={`총 ${memos.length}개의 메모`}
+      headerRight={
+        <Link
+          href="/add"
+          className="px-3 py-1.5 rounded-full bg-white/20 text-base text-white font-medium hover:bg-white/30 leading-none"
+          aria-label="새 메모"
+        >
+          ＋
+        </Link>
+      }
     >
       <div className="bg-white rounded-2xl px-4 py-3 mb-4 border border-gray-100 flex items-center">
         <span className="text-base mr-2">🔍</span>

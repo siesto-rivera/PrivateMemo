@@ -14,7 +14,7 @@ import {
 
 const REPEAT_OPTIONS: Repeat[] = ['none', 'daily', 'weekly', 'monthly'];
 
-type Props = { memo: Memo; onChanged?: () => void };
+type Props = { memo: Memo; onChanged?: () => void; highlighted?: boolean };
 
 function toDatetimeLocal(iso: string | null | undefined): string {
   if (!iso) return '';
@@ -24,7 +24,7 @@ function toDatetimeLocal(iso: string | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function MemoCard({ memo, onChanged }: Props) {
+export function MemoCard({ memo, onChanged, highlighted = false }: Props) {
   const emoji = CATEGORY_EMOJI[memo.category_name] ?? '📝';
   const [isOpen, setIsOpen] = useState(false);
 
@@ -34,6 +34,8 @@ export function MemoCard({ memo, onChanged }: Props) {
   const [memoText, setMemoText] = useState<string>(memo.memo);
   const [tags, setTags] = useState<string[]>(memo.tag);
   const [tagDraft, setTagDraft] = useState('');
+  const [hasSchedule, setHasSchedule] = useState<boolean>(!!memo.schedule_date);
+  const [scheduleDate, setScheduleDate] = useState<string>(memo.schedule_date ?? '');
   const [hasAlarm, setHasAlarm] = useState<boolean>(!!memo.alarm_date);
   const [alarmDate, setAlarmDate] = useState<string>(toDatetimeLocal(memo.alarm_date));
   const [repeat, setRepeat] = useState<Repeat>(memo.repeat ?? 'none');
@@ -46,6 +48,8 @@ export function MemoCard({ memo, onChanged }: Props) {
     setMemoText(memo.memo);
     setTags(memo.tag);
     setTagDraft('');
+    setHasSchedule(!!memo.schedule_date);
+    setScheduleDate(memo.schedule_date ?? '');
     setHasAlarm(!!memo.alarm_date);
     setAlarmDate(toDatetimeLocal(memo.alarm_date));
     setRepeat(memo.repeat ?? 'none');
@@ -119,6 +123,7 @@ export function MemoCard({ memo, onChanged }: Props) {
         category_name: category,
         memo: memoText,
         alarm_date: hasAlarm ? alarmDate || null : null,
+        schedule_date: hasSchedule ? scheduleDate || null : null,
         repeat: hasAlarm ? repeat : 'none',
         tag: tags,
       });
@@ -151,13 +156,27 @@ export function MemoCard({ memo, onChanged }: Props) {
       <button
         type="button"
         onClick={openModal}
-        className="block w-full text-left bg-white rounded-2xl px-4 py-3.5 mb-3 border border-gray-100 hover:bg-gray-50 cursor-pointer transition"
+        className={`block w-full text-left rounded-2xl px-4 py-3.5 mb-3 border cursor-pointer transition ${
+          highlighted
+            ? 'bg-brand-50 border-brand-200 hover:bg-brand-100'
+            : 'bg-white border-gray-100 hover:bg-gray-50'
+        }`}
       >
         <div className="flex items-center mb-1.5">
           <span className="text-lg mr-2">{emoji}</span>
           <span className="text-xs font-semibold text-brand-600">{memo.category_name}</span>
+          {memo.images && memo.images.length > 0 ? (
+            <span
+              className="ml-auto bg-gray-100 text-gray-600 text-[10px] font-medium px-2 py-0.5 rounded-full"
+              title="사진은 작성한 모바일 기기의 사진 앱에서 확인할 수 있습니다"
+            >
+              📷 {memo.images.length}
+            </span>
+          ) : null}
           {memo.alarm_date ? (
-            <span className="ml-auto bg-amber-50 text-amber-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
+            <span
+              className={`${memo.images && memo.images.length > 0 ? 'ml-1' : 'ml-auto'} bg-amber-50 text-amber-700 text-[10px] font-medium px-2 py-0.5 rounded-full`}
+            >
               🔔 {formatDate(memo.alarm_date)}
               {memo.repeat && memo.repeat !== 'none' ? ` 🔁 ${REPEAT_LABELS[memo.repeat]}` : ''}
             </span>
@@ -176,7 +195,9 @@ export function MemoCard({ memo, onChanged }: Props) {
             </span>
           ))}
           <span className="ml-auto text-[11px] text-gray-400">
-            {formatDate(memo.createDate)}
+            {memo.schedule_date
+              ? `📅 ${memo.schedule_date.replace(/-/g, '.')}`
+              : formatDate(memo.createDate)}
           </span>
         </div>
       </button>
@@ -274,6 +295,31 @@ export function MemoCard({ memo, onChanged }: Props) {
                   #{t} ✕
                 </button>
               ))}
+            </div>
+
+            <div className="bg-white rounded-2xl px-4 py-3 mb-5 border border-gray-100">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">📅 일정에 추가</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    선택한 날짜의 일정 캘린더에 표시됩니다
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={hasSchedule}
+                  onChange={(e) => setHasSchedule(e.target.checked)}
+                  className="w-10 h-6 appearance-none bg-gray-300 rounded-full relative cursor-pointer transition checked:bg-brand-500 before:content-[''] before:absolute before:top-0.5 before:left-0.5 before:w-5 before:h-5 before:bg-white before:rounded-full before:transition checked:before:translate-x-4"
+                />
+              </label>
+              {hasSchedule ? (
+                <input
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  className="mt-3 w-full bg-gray-50 rounded-xl px-3 py-2 text-[14px] text-gray-900 outline-none"
+                />
+              ) : null}
             </div>
 
             <div className="bg-white rounded-2xl px-4 py-3 mb-5 border border-gray-100">

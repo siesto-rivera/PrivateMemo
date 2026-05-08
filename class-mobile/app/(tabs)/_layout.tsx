@@ -34,11 +34,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="add"
+        name="calendar"
         options={{
-          title: '추가',
+          title: '일정',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle" size={size + 6} color={color} />
+            <Ionicons name="calendar-outline" size={size} color={color} />
           ),
         }}
       />
