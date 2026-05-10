@@ -34,7 +34,9 @@ function todayStr(): string {
 }
 
 const PRIVACY_URL = 'https://memoapi.ngoworks.org/privacy/';
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '1.0.0';
+const DEVELOPER_NAME = 'siesto';
+const DEVELOPER_EMAIL = 'siesto.rivera@gmail.com';
 
 const statusLabel: Record<PermissionStatus, string> = {
   granted: '허용됨',
@@ -377,6 +379,20 @@ export default function SettingsScreen() {
             >
               <Text className="text-base mr-3">📄</Text>
               <Text className="flex-1 text-[15px] text-gray-900">개인정보 처리방침</Text>
+              <Text className="text-gray-300">↗</Text>
+            </Pressable>
+            <View className="flex-row items-center px-4 py-3.5 border-b border-gray-100">
+              <Text className="text-base mr-3">👤</Text>
+              <Text className="flex-1 text-[15px] text-gray-900">개발자</Text>
+              <Text className="text-xs text-gray-400">{DEVELOPER_NAME}</Text>
+            </View>
+            <Pressable
+              onPress={() => Linking.openURL(`mailto:${DEVELOPER_EMAIL}`)}
+              className="flex-row items-center px-4 py-3.5 active:bg-gray-50 border-b border-gray-100"
+            >
+              <Text className="text-base mr-3">✉️</Text>
+              <Text className="flex-1 text-[15px] text-gray-900">문의</Text>
+              <Text className="text-xs text-gray-400 mr-2">{DEVELOPER_EMAIL}</Text>
               <Text className="text-gray-300">↗</Text>
             </Pressable>
             <View className="flex-row items-center px-4 py-3.5">

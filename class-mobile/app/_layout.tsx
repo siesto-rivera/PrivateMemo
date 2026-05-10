@@ -84,7 +84,6 @@ function AuthGate() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="memo/[id]" options={{ headerShown: true }} />
         <Stack.Screen name="trash" options={{ headerShown: true }} />
         <Stack.Screen name="add" options={{ headerShown: false }} />
       </Stack>

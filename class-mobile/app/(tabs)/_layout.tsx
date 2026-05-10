@@ -60,6 +60,12 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="memo/[id]"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

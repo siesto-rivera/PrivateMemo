@@ -11,11 +11,13 @@ import {
   Switch,
   Alert,
 } from 'react-native';
+import { usePathname, useRouter } from 'expo-router';
 import {
   Memo,
   formatDate,
   CATEGORY_EMOJI,
   REPEAT_LABELS,
+  stickyPalette,
   type Category,
   type Repeat,
 } from '@/lib/types';
@@ -28,26 +30,39 @@ const REPEAT_OPTIONS: Repeat[] = ['none', 'daily', 'weekly', 'monthly'];
 
 type Props = { memo: Memo; onChanged?: () => void; highlighted?: boolean };
 
-export function MemoCard({ memo, onChanged, highlighted = false }: Props) {
+const STICKY_TILTS = [-0.8, 0.7, -0.5, 0.9, -0.6];
+
+export function MemoCard({ memo, highlighted = false }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
   const emoji = CATEGORY_EMOJI[memo.category_name] ?? '📝';
-  const [open, setOpen] = useState(false);
+  const tilt = STICKY_TILTS[memo.id % STICKY_TILTS.length];
+  const palette = stickyPalette(memo.category_name);
 
   return (
-    <>
-      <Pressable
-        onPress={() => setOpen(true)}
-        className={`rounded-2xl px-4 py-3.5 mb-3 border ${
-          highlighted
-            ? 'bg-brand-50 border-brand-200 active:bg-brand-100'
-            : 'bg-white border-gray-100 active:bg-gray-50'
-        }`}
-      >
+    <Pressable
+      onPress={() =>
+        router.push(`/memo/${memo.id}?from=${encodeURIComponent(pathname)}`)
+      }
+      style={{
+        backgroundColor: palette.bg,
+        borderColor: highlighted ? '#7c3aed' : palette.border,
+        borderWidth: highlighted ? 2 : 1,
+        transform: [{ rotate: `${tilt}deg` }],
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.13,
+        shadowRadius: 5,
+        elevation: 3,
+      }}
+      className="rounded-md px-4 py-3.5 mb-4"
+    >
         <View className="flex-row items-center mb-1.5">
           <Text className="text-lg mr-2">{emoji}</Text>
-          <Text className="text-xs font-semibold text-brand-600">{memo.category_name}</Text>
+          <Text className="text-xs font-semibold text-brand-700">{memo.category_name}</Text>
           {memo.alarm_date ? (
-            <View className="ml-auto bg-amber-50 px-2 py-0.5 rounded-full">
-              <Text className="text-[10px] text-amber-700 font-medium">
+            <View className="ml-auto bg-white/70 px-2 py-0.5 rounded-full">
+              <Text className="text-[10px] text-amber-800 font-medium">
                 🔔 {formatDate(memo.alarm_date)}
                 {memo.repeat && memo.repeat !== 'none' ? ` 🔁 ${REPEAT_LABELS[memo.repeat]}` : ''}
               </Text>
@@ -75,37 +90,30 @@ export function MemoCard({ memo, onChanged, highlighted = false }: Props) {
         </View>
         <View className="flex-row flex-wrap items-center mt-2">
           {memo.tag.map((t) => (
-            <View key={t} className="bg-gray-100 px-2 py-0.5 rounded-full mr-1.5 mb-1">
-              <Text className="text-[11px] text-gray-600">#{t}</Text>
+            <View key={t} className="bg-white/60 px-2 py-0.5 rounded-full mr-1.5 mb-1">
+              <Text className="text-[11px] text-gray-700">#{t}</Text>
             </View>
           ))}
-          <Text className="text-[11px] text-gray-400 ml-auto">
-            {memo.schedule_date
-              ? `📅 ${memo.schedule_date.replace(/-/g, '.')}`
-              : formatDate(memo.createDate)}
-          </Text>
+          {memo.schedule_date ? (
+            <Text className="text-[11px] text-gray-500 ml-auto">
+              📅 {memo.schedule_date.replace(/-/g, '.')}
+            </Text>
+          ) : null}
         </View>
-      </Pressable>
-
-      {open ? (
-        <MemoEditModal
-          memo={memo}
-          onClose={() => setOpen(false)}
-          onChanged={onChanged}
-        />
-      ) : null}
-    </>
+    </Pressable>
   );
 }
 
-function MemoEditModal({
+export function MemoEditModal({
   memo,
   onClose,
-  onChanged,
+  onSaved,
+  onDeleted,
 }: {
   memo: Memo;
   onClose: () => void;
-  onChanged?: () => void;
+  onSaved?: () => void;
+  onDeleted?: () => void;
 }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
@@ -185,13 +193,13 @@ function MemoEditModal({
         images,
       });
       onClose();
-      onChanged?.();
+      onSaved?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : '저장 실패');
     } finally {
       setSaving(false);
     }
-  }, [saving, content, category, hasAlarm, alarmDate, hasSchedule, scheduleDate, repeat, tags, images, memo.id, onClose, onChanged]);
+  }, [saving, content, category, hasAlarm, alarmDate, hasSchedule, scheduleDate, repeat, tags, images, memo.id, onClose, onSaved]);
 
   function onDelete() {
     Alert.alert('메모 삭제', '이 메모를 삭제하시겠습니까?', [
@@ -203,7 +211,7 @@ function MemoEditModal({
           try {
             await deleteMemo(memo.id);
             onClose();
-            onChanged?.();
+            onDeleted?.();
           } catch (e) {
             setError(e instanceof Error ? e.message : '삭제 실패');
           }
@@ -307,7 +315,15 @@ function MemoEditModal({
 
               <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">사진</Text>
               <View className="mb-4">
-                <ImageAttachRow ids={images} onChange={setImages} />
+                <ImageAttachRow
+                  ids={images}
+                  onChange={(next) => {
+                    if (next.length > images.length && content.trim() === '') {
+                      setContent('포토 메모');
+                    }
+                    setImages(next);
+                  }}
+                />
               </View>
 
               <View className="bg-gray-50 rounded-2xl px-4 py-3 mb-4 border border-gray-100">

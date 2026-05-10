@@ -93,13 +93,32 @@ export function DateTimePickerButton({ value, onChange, mode = 'datetime' }: Pro
             className="bg-white rounded-2xl p-4 w-full max-w-md"
             onStartShouldSetResponder={() => true}
           >
-            <DateTimePicker
-              value={value}
-              mode={dateOnly ? 'date' : 'datetime'}
-              display="spinner"
-              onChange={handleIosChange}
-              locale="ko-KR"
-            />
+            {dateOnly ? (
+              <DateTimePicker
+                value={value}
+                mode="date"
+                display="spinner"
+                onChange={handleIosChange}
+                locale="ko-KR"
+              />
+            ) : (
+              <>
+                <DateTimePicker
+                  value={value}
+                  mode="date"
+                  display="spinner"
+                  onChange={handleIosChange}
+                  locale="ko-KR"
+                />
+                <DateTimePicker
+                  value={value}
+                  mode="time"
+                  display="spinner"
+                  onChange={handleIosChange}
+                  locale="ko-KR"
+                />
+              </>
+            )}
             <Pressable
               onPress={() => setIosVisible(false)}
               className="bg-brand-500 rounded-2xl py-3 items-center active:bg-brand-600 mt-2"

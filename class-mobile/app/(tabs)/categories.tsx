@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/screen-header';
 import { MemoCard } from '@/components/memo-card';
 import {
@@ -27,10 +27,11 @@ import { useSelectedCategory } from '@/lib/selected-category-context';
 import { CATEGORY_EMOJI, type Category, type Memo } from '@/lib/types';
 
 export default function CategoriesScreen() {
-  const { setSelectedCategory } = useSelectedCategory();
+  const router = useRouter();
+  const { selectedCategory, setSelectedCategory } = useSelectedCategory();
   const [categories, setCategories] = useState<Category[]>([]);
   const [memos, setMemos] = useState<Memo[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(selectedCategory);
 
   function selectCategory(name: string | null) {
     setSelected(name);
@@ -132,13 +133,33 @@ export default function CategoriesScreen() {
         subtitle={
           selected ? `${filteredMemos.length}개의 메모` : `${categories.length}개의 카테고리`
         }
-        right={
+        left={
           selected ? (
             <Pressable
               onPress={() => selectCategory(null)}
-              className="px-3 py-1.5 rounded-full bg-white/20 active:bg-white/30"
+              hitSlop={8}
+              className="w-9 h-9 rounded-full bg-white/20 active:bg-white/30 items-center justify-center"
             >
-              <Text className="text-xs text-white font-medium">← 전체</Text>
+              <Text className="text-2xl text-white font-medium leading-none mt-[-2px]">‹</Text>
+            </Pressable>
+          ) : null
+        }
+        right={
+          selected ? (
+            <Pressable
+              onPress={() => router.push('/add')}
+              hitSlop={8}
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.18,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
+              className="bg-white px-4 py-2 rounded-full active:bg-gray-100 flex-row items-center"
+            >
+              <Text className="text-base text-brand-600 font-bold leading-none mr-1">＋</Text>
+              <Text className="text-xs text-brand-600 font-bold leading-none">새 메모</Text>
             </Pressable>
           ) : null
         }

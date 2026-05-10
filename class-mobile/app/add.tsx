@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/screen-header';
 import { DateTimePickerButton } from '@/components/datetime-picker-button';
 import { ImageAttachRow } from '@/components/image-attach-row';
@@ -29,6 +29,8 @@ function defaultAlarmDate(): Date {
 
 export default function AddScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ from?: string }>();
+  const fromCalendar = params.from === 'calendar';
   const { selectedCategory } = useSelectedCategory();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCats, setLoadingCats] = useState(true);
@@ -37,7 +39,7 @@ export default function AddScreen() {
   const [tagDraft, setTagDraft] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
-  const [hasSchedule, setHasSchedule] = useState(false);
+  const [hasSchedule, setHasSchedule] = useState(fromCalendar);
   const [scheduleDate, setScheduleDate] = useState<Date>(() => new Date());
   const [hasAlarm, setHasAlarm] = useState(false);
   const [alarmDate, setAlarmDate] = useState<Date>(defaultAlarmDate);
@@ -149,7 +151,6 @@ export default function AddScreen() {
         tag: tags,
         images,
       });
-      Alert.alert('저장되었습니다');
       setMemo('');
       setTags([]);
       setImages([]);
@@ -158,6 +159,7 @@ export default function AddScreen() {
       setHasAlarm(false);
       setAlarmDate(defaultAlarmDate());
       setRepeat('none');
+      router.replace('/(tabs)');
     } catch (e) {
       Alert.alert('저장 실패', e instanceof Error ? e.message : '');
     } finally {
@@ -170,20 +172,25 @@ export default function AddScreen() {
       <ScreenHeader
         title="새 메모"
         subtitle="기록하고 분류하세요"
-        right={
+        left={
           <Pressable
-            onPress={() =>
-              selectedCategory
-                ? router.navigate('/(tabs)/categories')
-                : router.canGoBack()
-                  ? router.back()
-                  : router.navigate('/(tabs)')
-            }
-            className="px-3 py-1.5 rounded-full bg-white/20 active:bg-white/30"
+            onPress={() => {
+              if (fromCalendar) {
+                if (router.canGoBack()) router.back();
+                else router.navigate('/(tabs)/calendar');
+                return;
+              }
+              if (selectedCategory) {
+                router.navigate('/(tabs)/categories');
+                return;
+              }
+              if (router.canGoBack()) router.back();
+              else router.navigate('/(tabs)');
+            }}
+            hitSlop={8}
+            className="w-9 h-9 rounded-full bg-white/20 active:bg-white/30 items-center justify-center"
           >
-            <Text className="text-xs text-white font-medium">
-              {selectedCategory ? '← 카테고리' : '← 닫기'}
-            </Text>
+            <Text className="text-2xl text-white font-medium leading-none mt-[-2px]">‹</Text>
           </Pressable>
         }
       />
@@ -273,7 +280,15 @@ export default function AddScreen() {
 
         <Text className="text-xs font-semibold text-gray-500 mb-2 ml-1">사진</Text>
         <View className="mb-5">
-          <ImageAttachRow ids={images} onChange={setImages} />
+          <ImageAttachRow
+            ids={images}
+            onChange={(next) => {
+              if (next.length > images.length && memo.trim() === '') {
+                setMemo('포토 메모');
+              }
+              setImages(next);
+            }}
+          />
         </View>
 
         <View className="bg-white rounded-2xl px-4 py-3 mb-5 border border-gray-100">

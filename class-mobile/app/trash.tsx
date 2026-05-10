@@ -105,7 +105,7 @@ export default function TrashScreen() {
         options={{
           headerShown: true,
           title: '휴지통',
-          headerBackTitle: '뒤로',
+          headerBackButtonDisplayMode: 'minimal',
         }}
       />
       <ScrollView

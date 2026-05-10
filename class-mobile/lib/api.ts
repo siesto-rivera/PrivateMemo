@@ -209,6 +209,34 @@ export async function getMemos(): Promise<Memo[]> {
   return await apiFetch<Memo[]>('/memos/');
 }
 
+export type PaginatedMemos = {
+  count: number;
+  page: number;
+  page_size: number;
+  has_next: boolean;
+  results: Memo[];
+};
+
+export async function getMemosPaginated(
+  page: number,
+  pageSize = 30,
+): Promise<PaginatedMemos> {
+  const res = await apiFetch<PaginatedMemos | Memo[]>(
+    `/memos/?page=${page}&page_size=${pageSize}`,
+  );
+  // Backward compatibility: old backends without pagination support return an array.
+  if (Array.isArray(res)) {
+    return {
+      count: res.length,
+      page: 1,
+      page_size: res.length,
+      has_next: false,
+      results: res,
+    };
+  }
+  return res;
+}
+
 export async function getMemo(id: number): Promise<Memo> {
   return await apiFetch<Memo>(`/memos/${id}/`);
 }
