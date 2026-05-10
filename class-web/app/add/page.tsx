@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { createCategory, createMemo, getCategories } from '@/lib/api';
 import { useSelectedCategory } from '@/lib/selected-category-context';
@@ -11,13 +11,15 @@ const REPEAT_OPTIONS: Repeat[] = ['none', 'daily', 'weekly', 'monthly'];
 
 export default function AddPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromCalendar = searchParams.get('from') === 'calendar';
   const { selectedCategory } = useSelectedCategory();
   const [categories, setCategories] = useState<Category[]>([]);
   const [category, setCategory] = useState<string>('');
   const [memo, setMemo] = useState('');
   const [tagDraft, setTagDraft] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [hasSchedule, setHasSchedule] = useState(false);
+  const [hasSchedule, setHasSchedule] = useState(fromCalendar);
   const [scheduleDate, setScheduleDate] = useState('');
   const [hasAlarm, setHasAlarm] = useState(false);
   const [alarmDate, setAlarmDate] = useState('');
@@ -126,7 +128,6 @@ export default function AddPage() {
         repeat: hasAlarm ? repeat : 'none',
         tag: tags,
       });
-      alert('저장되었습니다');
       setMemo('');
       setTags([]);
       setHasSchedule(false);
@@ -134,6 +135,7 @@ export default function AddPage() {
       setHasAlarm(false);
       setAlarmDate('');
       setRepeat('none');
+      router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : '저장에 실패했습니다');
     } finally {
@@ -145,15 +147,24 @@ export default function AddPage() {
     <AppShell
       title="새 메모"
       subtitle="기록하고 분류하세요"
-      headerRight={
-        selectedCategory ? (
-          <button
-            onClick={() => router.push('/categories')}
-            className="px-3 py-1.5 rounded-full bg-white/20 text-xs text-white font-medium hover:bg-white/30"
-          >
-            ← 카테고리
-          </button>
-        ) : null
+      headerLeft={
+        <button
+          onClick={() => {
+            if (fromCalendar) {
+              router.back();
+              return;
+            }
+            if (selectedCategory) {
+              router.push('/categories');
+              return;
+            }
+            router.back();
+          }}
+          aria-label="뒤로가기"
+          className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+        >
+          <span className="text-2xl leading-none -mt-1">‹</span>
+        </button>
       }
     >
       <p className="text-xs font-semibold text-gray-500 mb-2 ml-1">카테고리</p>

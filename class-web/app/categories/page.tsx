@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { MemoCard } from '@/components/MemoCard';
 import {
@@ -15,10 +16,11 @@ import { useSelectedCategory } from '@/lib/selected-category-context';
 import { CATEGORY_EMOJI, type Category, type Memo } from '@/lib/types';
 
 export default function CategoriesPage() {
-  const { setSelectedCategory } = useSelectedCategory();
+  const router = useRouter();
+  const { selectedCategory, setSelectedCategory } = useSelectedCategory();
   const [categories, setCategories] = useState<Category[]>([]);
   const [memos, setMemos] = useState<Memo[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(selectedCategory);
 
   function selectCategory(name: string | null) {
     setSelected(name);
@@ -180,13 +182,26 @@ export default function CategoriesPage() {
           ? `${filteredMemos.length}개의 메모`
           : `${categories.length}개의 카테고리`
       }
-      headerRight={
+      headerLeft={
         selected ? (
           <button
             onClick={() => selectCategory(null)}
-            className="px-3 py-1.5 rounded-full bg-white/20 text-xs text-white font-medium hover:bg-white/30"
+            aria-label="뒤로가기"
+            className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
           >
-            ← 전체
+            <span className="text-2xl leading-none -mt-1">‹</span>
+          </button>
+        ) : null
+      }
+      headerRight={
+        selected ? (
+          <button
+            onClick={() => router.push('/add')}
+            aria-label="새 메모"
+            className="px-4 py-2 rounded-full bg-white text-brand-600 text-xs font-bold flex items-center gap-1 hover:bg-gray-100 shadow-md"
+          >
+            <span className="text-base font-bold leading-none">＋</span>
+            <span className="leading-none">새 메모</span>
           </button>
         ) : null
       }

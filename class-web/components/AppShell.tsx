@@ -16,11 +16,13 @@ const TABS = [
 export function AppShell({
   title,
   subtitle,
+  headerLeft,
   headerRight,
   children,
 }: {
   title: string;
   subtitle?: string;
+  headerLeft?: ReactNode;
   headerRight?: ReactNode;
   children: ReactNode;
 }) {
@@ -30,14 +32,24 @@ export function AppShell({
     <AuthGuard>
       <div className="min-h-screen w-full flex justify-center bg-gray-100">
         <div className="w-full max-w-md min-h-screen bg-gray-50 flex flex-col shadow-sm relative">
-          <header className="bg-brand-500 px-5 pt-5 pb-4 flex items-center justify-between sticky top-0 z-10">
-            <div>
-              <h1 className="text-xl font-bold text-white">{title}</h1>
-              {subtitle ? (
-                <p className="text-xs text-white/70 mt-0.5">{subtitle}</p>
-              ) : null}
+          <header className="bg-brand-500 px-3 pt-5 pb-4 sticky top-0 z-10 relative">
+            <div className="flex items-center min-h-[40px]">
+              <div>{headerLeft}</div>
+              <div
+                className="absolute inset-x-0 flex flex-col items-center justify-center pointer-events-none"
+                style={{ top: 20, bottom: 16 }}
+              >
+                <h1 className="text-xl font-bold text-white truncate max-w-[60%] text-center">
+                  {title}
+                </h1>
+                {subtitle ? (
+                  <p className="text-xs text-white/70 mt-0.5 truncate max-w-[60%] text-center">
+                    {subtitle}
+                  </p>
+                ) : null}
+              </div>
+              <div className="ml-auto">{headerRight}</div>
             </div>
-            {headerRight}
           </header>
 
           <main className="flex-1 px-5 pt-4 pb-24 overflow-y-auto">{children}</main>
