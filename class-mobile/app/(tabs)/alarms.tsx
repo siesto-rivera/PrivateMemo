@@ -43,8 +43,15 @@ export default function AlarmsScreen() {
     setRefreshing(false);
   }, [load]);
 
+  // 일회성 알람(repeat=none)이 이미 지난 경우 숨김. 반복 알람은 계속 표시.
+  const now = Date.now();
   const alarms = memos
-    .filter((m) => m.alarm_date != null)
+    .filter((m) => {
+      if (!m.alarm_date) return false;
+      const isRecurring = m.repeat && m.repeat !== 'none';
+      if (isRecurring) return true;
+      return new Date(m.alarm_date).getTime() >= now;
+    })
     .sort((a, b) => (a.alarm_date ?? '').localeCompare(b.alarm_date ?? ''));
 
   return (

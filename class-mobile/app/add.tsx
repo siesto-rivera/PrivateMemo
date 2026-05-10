@@ -15,7 +15,8 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/screen-header';
 import { DateTimePickerButton } from '@/components/datetime-picker-button';
 import { ImageAttachRow } from '@/components/image-attach-row';
-import { createCategory, createMemo, getCategories } from '@/lib/api';
+import { createCategory, createMemo, getCategories, getMemos } from '@/lib/api';
+import { syncAlarms } from '@/lib/notifications';
 import { useSelectedCategory } from '@/lib/selected-category-context';
 import { CATEGORY_EMOJI, REPEAT_LABELS, type Category, type Repeat } from '@/lib/types';
 
@@ -151,6 +152,16 @@ export default function AddScreen() {
         tag: tags,
         images,
       });
+      // Sync alarms with full memo list so the new alarm is scheduled immediately,
+      // not waiting for the home screen's background sync.
+      if (hasAlarm) {
+        try {
+          const allMemos = await getMemos();
+          await syncAlarms(allMemos);
+        } catch {
+          // best-effort; will resync on next focus
+        }
+      }
       setMemo('');
       setTags([]);
       setImages([]);

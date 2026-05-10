@@ -21,7 +21,8 @@ import {
   type Category,
   type Repeat,
 } from '@/lib/types';
-import { deleteMemo, getCategories, updateMemo } from '@/lib/api';
+import { deleteMemo, getCategories, getMemos, updateMemo } from '@/lib/api';
+import { syncAlarms } from '@/lib/notifications';
 import { AssetImage } from '@/components/asset-image';
 import { DateTimePickerButton } from '@/components/datetime-picker-button';
 import { ImageAttachRow } from '@/components/image-attach-row';
@@ -192,6 +193,13 @@ export function MemoEditModal({
         tag: tags,
         images,
       });
+      // Re-sync alarms so the change is reflected in the OS notification queue.
+      try {
+        const allMemos = await getMemos();
+        await syncAlarms(allMemos);
+      } catch {
+        // best-effort
+      }
       onClose();
       onSaved?.();
     } catch (e) {
@@ -210,6 +218,13 @@ export function MemoEditModal({
         onPress: async () => {
           try {
             await deleteMemo(memo.id);
+            // Re-sync alarms to remove the deleted memo's notification.
+            try {
+              const allMemos = await getMemos();
+              await syncAlarms(allMemos);
+            } catch {
+              // best-effort
+            }
             onClose();
             onDeleted?.();
           } catch (e) {

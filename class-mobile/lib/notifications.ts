@@ -116,6 +116,7 @@ export async function syncAlarms(memos: Memo[]): Promise<void> {
         title: `🔔 ${memo.category_name}`,
         body: memo.memo.slice(0, 100),
         data: { memoId: memo.id },
+        sound: 'default',
       },
       trigger,
     });
