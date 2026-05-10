@@ -2,6 +2,16 @@
 
 일상 속 여러 영역에서 수집되는 정보들을 카테고리별로 분류해 저장하고, 필요할 때 빠르게 찾아보기 위한 개인용 메모 앱입니다. 모바일(Expo)과 웹(Next.js) 두 클라이언트를 함께 제공합니다.
 
+## 배포 URL
+
+| 채널 | URL | 설명 |
+| --- | --- | --- |
+| 🌐 웹 (커스텀 도메인) | https://memo.ngoworks.org | Next.js (Vercel) |
+| 🌐 웹 (Vercel 기본) | https://private-memo.vercel.app | 동일 배포의 기본 URL |
+| 🔧 백엔드 API | https://memoapi.ngoworks.org/api | Django REST API (AWS Lightsail) |
+| 📄 개인정보 처리방침 | https://memoapi.ngoworks.org/privacy/ | |
+| 📱 iOS (TestFlight) | 초대 링크 (베타 테스터 모집) | Expo / EAS |
+
 ## 주요 기능
 
 - **카테고리별 메모 분류** — 영화, 책, 주소, 맛집, 비번, 차량관리 등 (사용자가 직접 추가 가능)
