@@ -89,3 +89,57 @@ export function stickyPalette(categoryName: string): StickyPalette {
   }
   return STICKY_PALETTES[Math.abs(hash) % STICKY_PALETTES.length];
 }
+
+/**
+ * 메모 알람이 다음에 울릴 시각(ms epoch)을 계산. 임박순 정렬에 사용.
+ * - repeat=none: alarm_date 그대로
+ * - repeat=daily: 오늘 HH:MM 또는 이미 지났으면 내일 HH:MM
+ * - repeat=weekly: 다음 같은 요일 HH:MM
+ * - repeat=monthly: 다음 같은 일 HH:MM
+ */
+export function nextFireTime(memo: Memo): number {
+  if (!memo.alarm_date) return Number.POSITIVE_INFINITY;
+  const date = new Date(memo.alarm_date);
+  const repeat = memo.repeat ?? 'none';
+  if (repeat === 'none') return date.getTime();
+
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  const now = new Date();
+
+  if (repeat === 'daily') {
+    const next = new Date(now);
+    next.setHours(hour, minute, 0, 0);
+    if (next.getTime() <= now.getTime()) {
+      next.setDate(next.getDate() + 1);
+    }
+    return next.getTime();
+  }
+
+  if (repeat === 'weekly') {
+    const targetWeekday = date.getDay();
+    const next = new Date(now);
+    next.setHours(hour, minute, 0, 0);
+    const currentWeekday = next.getDay();
+    let daysAhead = (targetWeekday - currentWeekday + 7) % 7;
+    if (daysAhead === 0 && next.getTime() <= now.getTime()) {
+      daysAhead = 7;
+    }
+    next.setDate(next.getDate() + daysAhead);
+    return next.getTime();
+  }
+
+  if (repeat === 'monthly') {
+    const targetDay = date.getDate();
+    const next = new Date(now);
+    next.setHours(hour, minute, 0, 0);
+    next.setDate(targetDay);
+    if (next.getTime() <= now.getTime()) {
+      next.setMonth(next.getMonth() + 1);
+      next.setDate(targetDay);
+    }
+    return next.getTime();
+  }
+
+  return date.getTime();
+}

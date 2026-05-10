@@ -5,7 +5,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { MemoCard } from '@/components/memo-card';
 import { getMemos } from '@/lib/api';
 import { syncAlarms } from '@/lib/notifications';
-import type { Memo } from '@/lib/types';
+import { nextFireTime, type Memo } from '@/lib/types';
 
 export default function AlarmsScreen() {
   const [memos, setMemos] = useState<Memo[]>([]);
@@ -44,6 +44,7 @@ export default function AlarmsScreen() {
   }, [load]);
 
   // 일회성 알람(repeat=none)이 이미 지난 경우 숨김. 반복 알람은 계속 표시.
+  // 정렬: 다음 발생 시각 임박순.
   const now = Date.now();
   const alarms = memos
     .filter((m) => {
@@ -52,7 +53,7 @@ export default function AlarmsScreen() {
       if (isRecurring) return true;
       return new Date(m.alarm_date).getTime() >= now;
     })
-    .sort((a, b) => (a.alarm_date ?? '').localeCompare(b.alarm_date ?? ''));
+    .sort((a, b) => nextFireTime(a) - nextFireTime(b));
 
   return (
     <View className="flex-1 bg-gray-50">
