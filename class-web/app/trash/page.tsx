@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { emptyTrash, forceDeleteMemo, getTrash, restoreMemo } from '@/lib/api';

@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { Suspense, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { AppShell } from '@/components/AppShell';
@@ -9,6 +11,14 @@ import { getMemo } from '@/lib/api';
 import { REPEAT_LABELS, stickyPalette, type Memo } from '@/lib/types';
 
 export default function MemoDetailPage() {
+  return (
+    <Suspense>
+      <MemoDetailInner />
+    </Suspense>
+  );
+}
+
+function MemoDetailInner() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();

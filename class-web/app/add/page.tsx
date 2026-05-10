@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { createCategory, createMemo, getCategories } from '@/lib/api';
@@ -10,6 +12,14 @@ import { CATEGORY_EMOJI, REPEAT_LABELS, type Category, type Repeat } from '@/lib
 const REPEAT_OPTIONS: Repeat[] = ['none', 'daily', 'weekly', 'monthly'];
 
 export default function AddPage() {
+  return (
+    <Suspense>
+      <AddPageInner />
+    </Suspense>
+  );
+}
+
+function AddPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromCalendar = searchParams.get('from') === 'calendar';
