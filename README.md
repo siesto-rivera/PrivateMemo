@@ -12,6 +12,22 @@
 | 📄 개인정보 처리방침 | https://memoapi.ngoworks.org/privacy/ | |
 | 📱 iOS (TestFlight) | 초대 링크 (베타 테스터 모집) | Expo / EAS |
 
+## 배포 파이프라인
+
+| 대상 | 배포처 | 트리거 |
+| --- | --- | --- |
+| **웹 (`class-web/`)** | [Vercel](https://vercel.com) — Next.js 호스팅 | `main` 브랜치 push 시 자동 빌드 + 자동 production 배포 (Vercel 대시보드의 Git 통합 사용) |
+| **모바일 (`class-mobile/`)** | TestFlight (네이티브 빌드) + Expo EAS Update (JS 번들 OTA) | `eas build` (네이티브 변경 시) / `eas update --branch production` (JS-only 변경 시) |
+| **백엔드** | AWS Lightsail (Nginx + Gunicorn + systemd) | 별도 레포 [`PrivateMemo-backend`](https://github.com/siesto-rivera/PrivateMemo-backend) `main` push 시 GitHub Actions가 SSH로 자동 배포 |
+
+### 웹 (Vercel) 배포 메모
+
+- **Root Directory**: `class-web`
+- **Framework Preset**: Next.js (자동 인식)
+- **Environment Variables**:
+  - `NEXT_PUBLIC_API_URL=https://memoapi.ngoworks.org/api`
+- 도메인 `memo.ngoworks.org` 는 Vercel Domains에서 CNAME으로 연결됨
+
 ## 주요 기능
 
 - **카테고리별 메모 분류** — 영화, 책, 주소, 맛집, 비번, 차량관리 등 (사용자가 직접 추가 가능)
