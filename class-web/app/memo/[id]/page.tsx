@@ -73,7 +73,7 @@ function MemoDetailInner() {
         <button
           onClick={goBack}
           aria-label="뒤로가기"
-          className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+          className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white md:bg-gray-100 md:hover:bg-gray-200 md:text-gray-600 flex items-center justify-center"
         >
           <span className="text-2xl leading-none -mt-1">‹</span>
         </button>

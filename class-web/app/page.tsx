@@ -93,6 +93,7 @@ export default function HomePage() {
     <AppShell
       title="지극히 사적인 메모장"
       subtitle={`총 ${count}개의 메모`}
+      width="wide"
       headerRight={
         <Link
           href="/add"
@@ -129,9 +130,11 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          {filtered.map((m) => (
-            <MemoCard key={m.id} memo={m} />
-          ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filtered.map((m) => (
+              <MemoCard key={m.id} memo={m} />
+            ))}
+          </div>
           {!query.trim() ? (
             <>
               <div ref={sentinelRef} />

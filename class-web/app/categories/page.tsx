@@ -179,6 +179,7 @@ export default function CategoriesPage() {
   return (
     <AppShell
       title={selected ?? '카테고리'}
+      width="wide"
       subtitle={
         selected
           ? `${filteredMemos.length}개의 메모`
@@ -189,7 +190,7 @@ export default function CategoriesPage() {
           <button
             onClick={() => selectCategory(null)}
             aria-label="뒤로가기"
-            className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+            className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white md:bg-gray-100 md:hover:bg-gray-200 md:text-gray-600 flex items-center justify-center"
           >
             <span className="text-2xl leading-none -mt-1">‹</span>
           </button>
@@ -219,7 +220,11 @@ export default function CategoriesPage() {
             </p>
           </div>
         ) : (
-          filteredMemos.map((m) => <MemoCard key={m.id} memo={m} onChanged={refetch} />)
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredMemos.map((m) => (
+              <MemoCard key={m.id} memo={m} onChanged={refetch} />
+            ))}
+          </div>
         )
       ) : (
         <>
@@ -244,7 +249,7 @@ export default function CategoriesPage() {
 
           {error ? <p className="text-red-600 text-sm mb-3">{error}</p> : null}
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
             {categories.map((c) => {
               const emoji = c.emoji || CATEGORY_EMOJI[c.name] || '🏷️';
               const cnt = counts[c.name] ?? 0;

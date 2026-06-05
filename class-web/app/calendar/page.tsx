@@ -217,14 +217,16 @@ export default function CalendarPage() {
               <p className="text-sm text-gray-400">이 달 일정이 없습니다</p>
             </div>
           ) : (
-            monthMemos.map((m) => (
-              <MemoCard
-                key={m.id}
-                memo={m}
-                onChanged={refetch}
-                highlighted={m.schedule_date === selectedKey}
-              />
-            ))
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {monthMemos.map((m) => (
+                <MemoCard
+                  key={m.id}
+                  memo={m}
+                  onChanged={refetch}
+                  highlighted={m.schedule_date === selectedKey}
+                />
+              ))}
+            </div>
           )}
         </>
       ) : (
@@ -241,7 +243,7 @@ export default function CalendarPage() {
             </div>
           ) : (
             annualMemos.map((m) => (
-              <div key={m.id} className="mb-1">
+              <div key={m.id} className="mb-4">
                 <p className="text-xs font-bold text-brand-700 mb-1.5 ml-1">
                   {formatScheduleDate(m.schedule_date as string)}
                 </p>

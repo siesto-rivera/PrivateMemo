@@ -84,10 +84,11 @@ export default function TrashPage() {
           >
             휴지통 비우기 ({memos.length}개)
           </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {memos.map((m) => {
             const emoji = CATEGORY_EMOJI[m.category_name] ?? '📝';
             return (
-              <div key={m.id} className="bg-white rounded-2xl px-4 py-3.5 mb-3 border border-gray-100">
+              <div key={m.id} className="bg-white rounded-2xl px-4 py-3.5 border border-gray-100">
                 <div className="flex items-center mb-1">
                   <span className="text-base mr-2">{emoji}</span>
                   <span className="text-xs font-semibold text-gray-500">{m.category_name}</span>
@@ -113,6 +114,7 @@ export default function TrashPage() {
               </div>
             );
           })}
+          </div>
         </>
       )}
     </AppShell>

@@ -31,14 +31,13 @@ const STICKY_TILTS = [-0.8, 0.7, -0.5, 0.9, -0.6];
 
 export function MemoCard({ memo, highlighted = false }: Props) {
   const pathname = usePathname();
-  const emoji = CATEGORY_EMOJI[memo.category_name] ?? '📝';
   const tilt = STICKY_TILTS[memo.id % STICKY_TILTS.length];
   const palette = stickyPalette(memo.category_name);
 
   return (
     <Link
       href={`/memo/${memo.id}?from=${encodeURIComponent(pathname)}`}
-      className="block w-full text-left rounded-md px-4 py-3.5 mb-4 cursor-pointer transition hover:brightness-95"
+      className="block w-full text-left rounded-md px-4 py-3.5 cursor-pointer transition hover:brightness-95"
       style={{
         backgroundColor: palette.bg,
         borderColor: highlighted ? '#7c3aed' : palette.border,
@@ -48,26 +47,26 @@ export function MemoCard({ memo, highlighted = false }: Props) {
         boxShadow: '0 4px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06)',
       }}
     >
-      <div className="flex items-center mb-1.5">
-        <span className="text-lg mr-2">{emoji}</span>
-        <span className="text-xs font-semibold text-brand-700">{memo.category_name}</span>
-        {memo.images && memo.images.length > 0 ? (
-          <span
-            className="ml-auto bg-white/60 text-gray-700 text-[10px] font-medium px-2 py-0.5 rounded-full"
-            title="사진은 작성한 모바일 기기의 사진 앱에서 확인할 수 있습니다"
-          >
-            📷 {memo.images.length}
-          </span>
-        ) : null}
-        {memo.alarm_date ? (
-          <span
-            className={`${memo.images && memo.images.length > 0 ? 'ml-1' : 'ml-auto'} bg-white/70 text-amber-800 text-[10px] font-medium px-2 py-0.5 rounded-full`}
-          >
-            🔔 {formatDate(memo.alarm_date)}
-            {memo.repeat && memo.repeat !== 'none' ? ` 🔁 ${REPEAT_LABELS[memo.repeat]}` : ''}
-          </span>
-        ) : null}
-      </div>
+      {(memo.images && memo.images.length > 0) || memo.alarm_date ? (
+        <div className="flex items-center mb-1.5">
+          {memo.images && memo.images.length > 0 ? (
+            <span
+              className="bg-white/60 text-gray-700 text-[10px] font-medium px-2 py-0.5 rounded-full"
+              title="사진은 작성한 모바일 기기의 사진 앱에서 확인할 수 있습니다"
+            >
+              📷 {memo.images.length}
+            </span>
+          ) : null}
+          {memo.alarm_date ? (
+            <span
+              className={`${memo.images && memo.images.length > 0 ? 'ml-1' : ''} bg-white/70 text-amber-800 text-[10px] font-medium px-2 py-0.5 rounded-full`}
+            >
+              🔔 {formatDate(memo.alarm_date)}
+              {memo.repeat && memo.repeat !== 'none' ? ` 🔁 ${REPEAT_LABELS[memo.repeat]}` : ''}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       <div className="text-[15px] text-gray-800 leading-5 line-clamp-2 prose prose-sm max-w-none [&>*]:m-0 [&_p]:m-0 [&_ul]:m-0 [&_li]:m-0">
         <ReactMarkdown>{memo.memo}</ReactMarkdown>
       </div>

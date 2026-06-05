@@ -53,7 +53,7 @@ export default function AlarmsPage() {
     .sort((a, b) => nextFireTime(a) - nextFireTime(b));
 
   return (
-    <AppShell title="예정된 알림" subtitle={`${alarms.length}건의 알림`}>
+    <AppShell title="예정된 알림" subtitle={`${alarms.length}건의 알림`} width="wide">
       {loading ? (
         <p className="text-sm text-gray-500 py-12 text-center">로딩 중…</p>
       ) : error ? (
@@ -64,7 +64,11 @@ export default function AlarmsPage() {
           <p className="text-sm text-gray-400">예약된 알림이 없습니다</p>
         </div>
       ) : (
-        alarms.map((m) => <MemoCard key={m.id} memo={m} onChanged={refetch} />)
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {alarms.map((m) => (
+            <MemoCard key={m.id} memo={m} onChanged={refetch} />
+          ))}
+        </div>
       )}
     </AppShell>
   );
