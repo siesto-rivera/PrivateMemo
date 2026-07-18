@@ -12,6 +12,8 @@ import {
   AuthError,
   clearTokens,
   getAccess,
+  getRefresh,
+  getStoredUser,
   login as apiLogin,
   me as apiMe,
   signup as apiSignup,
@@ -35,16 +37,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     async function bootstrap() {
-      if (!getAccess()) {
+      // No stored tokens at all → genuinely logged out.
+      if (!getAccess() && !getRefresh()) {
         if (!cancelled) setLoading(false);
         return;
       }
+      // Restore the cached session immediately so a slow/offline load keeps the
+      // user logged in instead of bouncing them to the login screen.
+      const cached = getStoredUser();
+      if (cached && !cancelled) setUser(cached);
       try {
         const u = await apiMe();
         if (!cancelled) setUser(u);
       } catch (err) {
-        if (!(err instanceof AuthError)) {
-          // non-auth error (e.g. network) — leave user null
+        // Only a real auth failure (401 after refresh) logs the user out.
+        // Transient/network errors keep the persisted session intact.
+        if (err instanceof AuthError) {
+          clearTokens();
+          if (!cancelled) setUser(null);
         }
       } finally {
         if (!cancelled) setLoading(false);

@@ -4,6 +4,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:8001/api';
 
 const ACCESS_KEY = 'pm_access';
 const REFRESH_KEY = 'pm_refresh';
+const USER_KEY = 'pm_user';
 
 export class AuthError extends Error {
   constructor(message = 'Authentication required') {
@@ -32,6 +33,25 @@ export function clearTokens(): void {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(ACCESS_KEY);
   window.localStorage.removeItem(REFRESH_KEY);
+  window.localStorage.removeItem(USER_KEY);
+}
+
+// Cache the last known user profile so the session can be restored instantly on
+// load — even before (or without) a successful network round-trip to /auth/me/.
+export function getStoredUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredUser(user: User): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 type ApiInit = RequestInit & { auth?: boolean };
@@ -148,8 +168,10 @@ export async function login(email: string, password: string): Promise<AuthTokens
   return data;
 }
 
-export function me(): Promise<User> {
-  return apiFetch<User>('/auth/me/');
+export async function me(): Promise<User> {
+  const user = await apiFetch<User>('/auth/me/');
+  setStoredUser(user);
+  return user;
 }
 
 export function getCategories(): Promise<Category[]> {

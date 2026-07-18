@@ -3,6 +3,7 @@ import type { Category, Memo, Repeat, User } from './types';
 
 const ACCESS_KEY = 'pm_access';
 const REFRESH_KEY = 'pm_refresh';
+const USER_KEY = 'pm_user';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 if (!BASE_URL) {
@@ -36,6 +37,23 @@ export async function setTokens(access: string, refresh?: string): Promise<void>
 export async function clearTokens(): Promise<void> {
   await SecureStore.deleteItemAsync(ACCESS_KEY);
   await SecureStore.deleteItemAsync(REFRESH_KEY);
+  await SecureStore.deleteItemAsync(USER_KEY);
+}
+
+// Cache the last known user profile so the session can be restored instantly on
+// launch — even before (or without) a successful network round-trip to /auth/me/.
+export async function getStoredUser(): Promise<User | null> {
+  const raw = await SecureStore.getItemAsync(USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+}
+
+export async function setStoredUser(user: User): Promise<void> {
+  await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
 }
 
 function joinUrl(path: string): string {
@@ -160,7 +178,9 @@ export async function login(email: string, password: string): Promise<AuthLoginR
 }
 
 export async function me(): Promise<User> {
-  return await apiFetch<User>('/auth/me/');
+  const user = await apiFetch<User>('/auth/me/');
+  await setStoredUser(user);
+  return user;
 }
 
 export async function deleteAccount(password: string): Promise<void> {
