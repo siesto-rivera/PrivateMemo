@@ -20,6 +20,25 @@
 | **모바일 (`class-mobile/`)** | TestFlight (네이티브 빌드) + Expo EAS Update (JS 번들 OTA) | `eas build` (네이티브 변경 시) / `eas update --branch production` (JS-only 변경 시) |
 | **백엔드** | AWS Lightsail (Nginx + Gunicorn + systemd) | 별도 레포 [`PrivateMemo-backend`](https://github.com/siesto-rivera/PrivateMemo-backend) `main` push 시 GitHub Actions가 SSH로 자동 배포 |
 
+### TestFlight 제출 (ASC API 키 — EAS 서버 저장)
+
+`eas submit -p ios` 를 대화형 Apple 로그인 없이 실행하기 위해, App Store Connect API 키를
+**EAS 서버에 저장**한다 (리포에는 어떤 비밀도 남기지 않음).
+
+1. App Store Connect → 사용자 및 액세스 → 통합 → **App Store Connect API** 에서 키 생성
+   (권한 **App Manager**) → `.p8` 다운로드(1회만 가능), **Key ID** / **Issuer ID** 확인
+2. EAS 서버에 1회 등록 (실제 터미널에서, 대화형):
+   ```bash
+   cd class-mobile
+   npx eas-cli credentials
+   # iOS → App Store Connect API Key → 업로드(.p8 경로 · Key ID · Issuer ID 입력)
+   ```
+3. 이후 제출은 비대화형으로 동작:
+   ```bash
+   npx eas-cli submit -p ios --latest --non-interactive
+   ```
+   `.p8` 는 로컬/리포에 둘 필요 없이 EAS 서버에서 사용된다.
+
 ### 웹 (Vercel) 배포 메모
 
 - **Root Directory**: `class-web`
