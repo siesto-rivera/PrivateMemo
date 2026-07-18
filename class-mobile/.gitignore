@@ -42,3 +42,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# App Store Connect API key — never commit the private key (.p8)
+/credentials/*.p8
